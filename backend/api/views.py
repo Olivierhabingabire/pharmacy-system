@@ -1,8 +1,11 @@
 import os
 import uuid
+from datetime import timedelta
 from decimal import Decimal
 
 from django.db import IntegrityError, transaction
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
@@ -11,7 +14,6 @@ from rest_framework.views import APIView
 
 from .models import Medicine, Sale
 from .serializers import MedicineSerializer, SaleRequestSerializer
-
 
 class MedicineList(ListCreateAPIView):
     queryset = Medicine.objects.all()
@@ -117,4 +119,72 @@ class SaleCreate(APIView):
                 "total": str(total),
             },
             status=status.HTTP_201_CREATED,
+        )
+
+class Analytics(APIView):
+    def get(self, request):
+        try:
+            days = int(request.query_params.get("days", 7))
+            limit = int(request.query_params.get("limit", 5))
+        except ValueError:
+            return Response(
+                {"detail": "days and limit must be whole numbers."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not 1 <= days <= 90 or not 1 <= limit <= 20:
+            return Response(
+                {"detail": "days must be 1-90 and limit must be 1-20."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        today = timezone.localdate()
+        since = today - timedelta(days=days - 1)
+        sales = Sale.objects.filter(sold_at__date__gte=since)
+        line_total = ExpressionWrapper(
+            F("qty") * F("unit_price"),
+            output_field=DecimalField(max_digits=14, decimal_places=2),
+        )
+
+        per_day = {
+            row["day"]: row
+            for row in sales.annotate(day=TruncDate("sold_at"))
+            .values("day")
+            .annotate(
+                revenue=Sum(line_total),
+                items_sold=Sum("qty"),
+                receipts=Count("receipt_id", distinct=True),
+            )
+        }
+        daily_revenue = []
+        for offset in range(days):
+            day = since + timedelta(days=offset)
+            row = per_day.get(day)
+            daily_revenue.append(
+                {
+                    "date": day.isoformat(),
+                    "revenue": str(row["revenue"]) if row else "0.00",
+                    "items_sold": row["items_sold"] if row else 0,
+                    "receipts": row["receipts"] if row else 0,
+                }
+            )
+
+        best_sellers = [
+            {
+                "medicine_id": row["medicine_id"],
+                "name": row["medicine__name"],
+                "qty_sold": row["qty_sold"],
+                "revenue": str(row["revenue"]),
+            }
+            for row in sales.values("medicine_id", "medicine__name")
+            .annotate(qty_sold=Sum("qty"), revenue=Sum(line_total))
+            .order_by("-qty_sold", "medicine_id")[:limit]
+        ]
+
+        return Response(
+            {
+                "from": since.isoformat(),
+                "to": today.isoformat(),
+                "daily_revenue": daily_revenue,
+                "best_sellers": best_sellers,
+            }
         )
