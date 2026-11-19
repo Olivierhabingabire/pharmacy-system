@@ -15,3 +15,20 @@ class MedicineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Medicine
         fields = ["id", "name", "price", "stock", "expiry_date"]
+
+
+class SaleItemSerializer(serializers.Serializer):
+    medicine_id = serializers.IntegerField(min_value=1)
+    qty = serializers.IntegerField(min_value=1)
+
+
+class SaleRequestSerializer(serializers.Serializer):
+    items = SaleItemSerializer(many=True, allow_empty=False)
+
+    def validate_items(self, items):
+        ids = [item["medicine_id"] for item in items]
+        if len(ids) != len(set(ids)):
+            raise serializers.ValidationError(
+                "Each medicine may appear only once in a sale."
+            )
+        return items
