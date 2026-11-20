@@ -50,7 +50,9 @@ export default function MedicinesPage() {
   return (
     <main className="mx-auto max-w-4xl p-6">
       <h1 className="text-2xl font-bold">Medicines</h1>
-
+      <Link href="/sales" className="text-sm text-blue-400 hover:underline">
+        New sale →
+      </Link>
       <MedicineForm
         title="Add a medicine"
         submitLabel="Add medicine"
