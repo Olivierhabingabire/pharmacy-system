@@ -21,7 +21,6 @@ const fields = [
 ] as const;
 
 export default function MedicineForm({
-  title,
   submitLabel,
   successText,
   method,
@@ -31,7 +30,6 @@ export default function MedicineForm({
   resetOnSuccess,
   onSaved,
 }: {
-  title: string;
   submitLabel: string;
   successText: string;
   method: "POST" | "PATCH";
@@ -89,52 +87,49 @@ export default function MedicineForm({
   }
 
   return (
-    <form
-      onSubmit={submit}
-      className="mt-4 grid gap-3 rounded border border-gray-300 p-4 sm:grid-cols-2"
-    >
-      <h2 className="font-semibold sm:col-span-2">{title}</h2>
-
+    <form onSubmit={submit} className="grid gap-4" noValidate>
       {fields.map((f) => (
-        <label key={f.key} className="text-sm">
-          {f.label}
+        <div key={f.key}>
+          <label htmlFor={`field-${f.key}`} className="text-sm font-medium">
+            {f.label}
+          </label>
           <input
+            id={`field-${f.key}`}
             type={f.type}
             value={values[f.key]}
             onChange={(e) =>
               setValues((v) => ({ ...v, [f.key]: e.target.value }))
             }
             step={f.key === "price" ? "0.01" : undefined}
-            className={`mt-1 w-full rounded border bg-white p-2 text-black ${
-              errors[f.key] ? "border-red-500" : "border-gray-300"
-            }`}
+            aria-invalid={errors[f.key] ? true : undefined}
+            aria-describedby={errors[f.key] ? `error-${f.key}` : undefined}
+            className={`mt-1 w-full rounded-md border bg-surface px-3 py-2 text-sm ${
+              errors[f.key] ? "border-red" : "border-rule"
+            } focus:border-cross focus:outline-none focus:ring-2 focus:ring-cross/30`}
           />
           {errors[f.key] && (
-            <span className="mt-1 block text-xs text-red-400">
+            <p id={`error-${f.key}`} className="mt-1 text-xs text-red">
               {errors[f.key].join(" ")}
-            </span>
+            </p>
           )}
-        </label>
+        </div>
       ))}
 
-      <div className="flex items-center gap-3 sm:col-span-2">
+      <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={submitting}
-          className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+          className="rounded-md bg-pine px-4 py-2 text-sm font-medium text-white hover:bg-[#123a32] disabled:opacity-50"
         >
           {submitting ? "Saving…" : submitLabel}
         </button>
         {message && (
-          <span
-            className={
-              message.kind === "ok"
-                ? "text-sm text-green-400"
-                : "text-sm text-red-400"
-            }
+          <p
+            role="status"
+            className={`text-sm ${message.kind === "ok" ? "text-ok" : "text-red"}`}
           >
             {message.text}
-          </span>
+          </p>
         )}
       </div>
     </form>

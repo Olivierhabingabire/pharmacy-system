@@ -8,3 +8,24 @@ export type Medicine = {
   stock: number;
   expiry_date: string;
 };
+
+export type DailyRevenue = {
+  date: string;
+  revenue: string;
+  items_sold: number;
+  receipts: number;
+};
+
+export type BestSeller = {
+  medicine_id: number;
+  name: string;
+  qty_sold: number;
+  revenue: string;
+};
+
+export type Analytics = {
+  from: string;
+  to: string;
+  daily_revenue: DailyRevenue[];
+  best_sellers: BestSeller[];
+};
