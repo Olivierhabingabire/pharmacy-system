@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Minus, Plus, Printer, Search, X } from "lucide-react";
 import { API_URL, type Medicine } from "@/lib/api";
+import { money } from "@/lib/format";
 import { medicineStatus } from "@/lib/status";
 
 type Receipt = {
@@ -25,8 +26,10 @@ type Catalog =
   | { status: "error"; message: string }
   | { status: "ready"; medicines: Medicine[] };
 
-const money = (value: string | number) =>
-  Number(value).toLocaleString("en-US");
+function isSellable(m: Medicine) {
+  const label = medicineStatus(m).label;
+  return label !== "Expired" && label !== "Out of stock";
+}
 
 export default function SalesPage() {
   const [catalog, setCatalog] = useState<Catalog>({ status: "loading" });
@@ -37,6 +40,7 @@ export default function SalesPage() {
   const [problem, setProblem] = useState<string | null>(null);
   const [refusals, setRefusals] = useState<Refusal[]>([]);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -67,18 +71,26 @@ export default function SalesPage() {
     .filter(
       (line): line is { medicine: Medicine; qty: number } => !!line.medicine,
     );
+  const itemCount = lines.reduce((sum, l) => sum + l.qty, 0);
   const runningTotal = lines.reduce(
-    (sum, line) => sum + Number(line.medicine.price) * line.qty,
+    (sum, l) => sum + Number(l.medicine.price) * l.qty,
     0,
   );
 
-  function setQty(id: number, qty: number) {
+  const needle = search.trim().toLowerCase();
+  const shown = medicines.filter((m) => m.name.toLowerCase().includes(needle));
+
+  function setQty(m: Medicine, qty: number) {
     setCart((current) => {
       const next = { ...current };
-      if (qty <= 0) delete next[id];
-      else next[id] = qty;
+      if (qty <= 0) delete next[m.id];
+      else next[m.id] = Math.min(qty, m.stock);
       return next;
     });
+  }
+
+  function addOne(m: Medicine) {
+    setQty(m, (cart[m.id] ?? 0) + 1);
   }
 
   async function completeSale() {
@@ -124,46 +136,66 @@ export default function SalesPage() {
     setReceipt(null);
     setProblem(null);
     setRefusals([]);
+    setSearch("");
   }
 
   if (receipt) {
-    return <ReceiptView receipt={receipt} onNewSale={newSale} />;
+    return <FinishedReceipt receipt={receipt} onNewSale={newSale} />;
   }
 
-  const shown = medicines.filter((m) =>
-    m.name.toLowerCase().includes(search.trim().toLowerCase()),
-  );
-
   return (
-    <main className="mx-auto max-w-5xl p-6">
-      <Link href="/medicines" className="text-sm text-blue-400 hover:underline">
-        ← Medicines
-      </Link>
-      <h1 className="mt-2 text-2xl font-bold">New sale</h1>
+    <main className="mx-auto max-w-6xl px-5 py-8 pb-28 md:px-8 lg:pb-8">
+      <h1 className="text-2xl font-semibold tracking-tight">New sale</h1>
+      <p className="mt-1 text-sm text-muted">
+        Search a medicine and press Enter to add it, or use the Add buttons.
+      </p>
 
-      <div className="mt-4 grid gap-6 md:grid-cols-2">
-        <section>
-          <h2 className="font-semibold">1. Choose medicines</h2>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name"
-            className="mt-2 w-full rounded border border-gray-300 bg-white p-2 text-black placeholder-gray-500"
-          />
+      <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        <section aria-label="Medicines" className="min-w-0">
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+              aria-hidden="true"
+            />
+            <input
+              ref={searchRef}
+              autoFocus
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                const first = shown.find(isSellable);
+                if (first) {
+                  addOne(first);
+                  setSearch("");
+                }
+              }}
+              placeholder="Search by name"
+              aria-label="Search medicines"
+              className="w-full rounded-md border border-rule bg-surface py-2.5 pl-9 pr-3 text-sm placeholder:text-muted focus:border-cross focus:outline-none focus:ring-2 focus:ring-cross/30"
+            />
+          </div>
 
           {catalog.status === "loading" && (
-            <p className="mt-4 text-gray-500">Loading medicines…</p>
+            <div className="mt-4 space-y-2" aria-busy="true" aria-label="Loading">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="h-14 rounded-md bg-rule motion-safe:animate-pulse"
+                />
+              ))}
+            </div>
           )}
 
           {catalog.status === "error" && (
-            <div className="mt-4 rounded border border-red-300 bg-red-50 p-4 text-red-800">
+            <div className="mt-4 rounded-lg border border-red/30 bg-red-bg p-4 text-sm text-red">
               <p>{catalog.message}</p>
               <button
                 onClick={() => {
                   setCatalog({ status: "loading" });
                   setAttempt((n) => n + 1);
                 }}
-                className="mt-3 rounded bg-red-700 px-3 py-1 text-white"
+                className="mt-3 rounded-md bg-red px-3 py-1.5 font-medium text-white"
               >
                 Try again
               </button>
@@ -171,38 +203,53 @@ export default function SalesPage() {
           )}
 
           {catalog.status === "ready" && (
-            <ul className="mt-3 max-h-[28rem] divide-y divide-gray-700 overflow-y-auto rounded border border-gray-700">
+            <ul className="mt-4 divide-y divide-rule overflow-hidden rounded-lg border border-rule bg-surface lg:max-h-[calc(100vh-13rem)] lg:overflow-y-auto">
               {shown.length === 0 && (
-                <li className="p-3 text-gray-500">No medicine matches.</li>
+                <li className="p-6 text-center text-sm text-muted">
+                  No medicine matches “{search}”.
+                </li>
               )}
               {shown.map((m) => {
                 const status = medicineStatus(m);
-                const unavailable =
-                  status.label === "Expired" || status.label === "Out of stock";
+                const sellable = isSellable(m);
                 const inCart = cart[m.id] ?? 0;
                 return (
                   <li
                     key={m.id}
-                    className="flex items-center justify-between gap-2 p-2 text-sm"
+                    className="flex items-center justify-between gap-3 px-4 py-3"
                   >
-                    <div>
-                      <div>{m.name}</div>
-                      <div className="text-xs text-gray-500">
-                        {money(m.price)} RWF · stock {m.stock}{" "}
-                        <span
-                          className={`rounded px-1.5 py-0.5 ${status.style}`}
-                        >
-                          {status.label}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{m.name}</p>
+                      <p className="mt-0.5 text-xs text-muted">
+                        <span className="tabular-nums">
+                          {money(m.price)} RWF
                         </span>
-                      </div>
+                        {" · "}
+                        <span className="tabular-nums">{m.stock}</span> in stock
+                        {status.label !== "OK" && (
+                          <span
+                            className={`ml-2 whitespace-nowrap rounded px-1.5 py-0.5 font-medium ${status.style}`}
+                          >
+                            {status.label}
+                          </span>
+                        )}
+                      </p>
                     </div>
-                    <button
-                      onClick={() => setQty(m.id, inCart + 1)}
-                      disabled={unavailable || inCart >= m.stock}
-                      className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-40"
-                    >
-                      Add
-                    </button>
+                    {sellable ? (
+                      <button
+                        onClick={() => addOne(m)}
+                        disabled={inCart >= m.stock}
+                        aria-label={`Add ${m.name}`}
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-rule px-3 py-1.5 text-sm font-medium hover:border-pine hover:bg-pine hover:text-white disabled:opacity-40 disabled:hover:border-rule disabled:hover:bg-transparent disabled:hover:text-ink"
+                      >
+                        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                        {inCart > 0 ? `Add (${inCart})` : "Add"}
+                      </button>
+                    ) : (
+                      <span className="shrink-0 text-xs text-muted">
+                        Cannot be sold
+                      </span>
+                    )}
                   </li>
                 );
               })}
@@ -210,72 +257,88 @@ export default function SalesPage() {
           )}
         </section>
 
-        <section>
-          <h2 className="font-semibold">2. Cart</h2>
-
-          {lines.length === 0 ? (
-            <p className="mt-3 rounded border border-gray-700 p-4 text-gray-500">
-              The cart is empty. Add medicines from the list.
+        <aside id="receipt" aria-label="Cart" className="lg:sticky lg:top-6 lg:self-start">
+          <Paper>
+            <p className="text-center text-sm font-medium tracking-wide">
+              PHARMACY DESK
             </p>
-          ) : (
-            <ul className="mt-3 divide-y divide-gray-700 rounded border border-gray-700">
-              {lines.map(({ medicine, qty }) => (
-                <li key={medicine.id} className="p-3 text-sm">
-                  <div className="flex justify-between gap-2">
-                    <span>{medicine.name}</span>
-                    <span>{money(Number(medicine.price) * qty)} RWF</span>
-                  </div>
-                  <div className="mt-2 flex items-center gap-2">
-                    <button
-                      onClick={() => setQty(medicine.id, qty - 1)}
-                      className="rounded border border-gray-500 px-2"
-                      aria-label={`One less ${medicine.name}`}
-                    >
-                      −
-                    </button>
-                    <span className="w-6 text-center">{qty}</span>
-                    <button
-                      onClick={() => setQty(medicine.id, qty + 1)}
-                      disabled={qty >= medicine.stock}
-                      className="rounded border border-gray-500 px-2 disabled:opacity-40"
-                      aria-label={`One more ${medicine.name}`}
-                    >
-                      +
-                    </button>
-                    <span className="text-xs text-gray-500">
-                      × {money(medicine.price)}
-                    </span>
-                    <button
-                      onClick={() => setQty(medicine.id, 0)}
-                      className="ml-auto text-xs text-red-400 hover:underline"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+            <p className="mt-1 text-center text-xs text-muted">Current sale</p>
+            <Rule />
 
-          <div className="mt-4 flex items-center justify-between text-lg font-semibold">
-            <span>Total</span>
-            <span>{money(runningTotal)} RWF</span>
-          </div>
-          <p className="text-xs text-gray-500">
-            The server recalculates the final total from the database prices.
-          </p>
+            {lines.length === 0 ? (
+              <p className="py-6 text-center text-xs text-muted">
+                No items yet.
+                <br />
+                Add a medicine to start.
+              </p>
+            ) : (
+              <ul className="text-sm">
+                {lines.map(({ medicine, qty }) => (
+                  <li key={medicine.id} className="py-2">
+                    <div className="flex justify-between gap-3">
+                      <span className="min-w-0 break-words">
+                        {medicine.name}
+                      </span>
+                      <span className="shrink-0 tabular-nums">
+                        {money(Number(medicine.price) * qty)}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-muted">
+                      <button
+                        onClick={() => setQty(medicine, qty - 1)}
+                        aria-label={`One less ${medicine.name}`}
+                        className="grid h-6 w-6 place-items-center rounded border border-rule text-ink hover:bg-paper"
+                      >
+                        <Minus className="h-3 w-3" aria-hidden="true" />
+                      </button>
+                      <span className="w-5 text-center tabular-nums text-ink">
+                        {qty}
+                      </span>
+                      <button
+                        onClick={() => setQty(medicine, qty + 1)}
+                        disabled={qty >= medicine.stock}
+                        aria-label={`One more ${medicine.name}`}
+                        className="grid h-6 w-6 place-items-center rounded border border-rule text-ink hover:bg-paper disabled:opacity-40"
+                      >
+                        <Plus className="h-3 w-3" aria-hidden="true" />
+                      </button>
+                      <span className="tabular-nums">
+                        x {money(medicine.price)}
+                      </span>
+                      <button
+                        onClick={() => setQty(medicine, 0)}
+                        aria-label={`Remove ${medicine.name}`}
+                        className="ml-auto text-muted hover:text-red"
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-          <button
-            onClick={completeSale}
-            disabled={submitting || lines.length === 0}
-            className="mt-4 w-full rounded bg-green-600 px-4 py-2 text-white disabled:opacity-40"
-          >
-            {submitting ? "Processing…" : "Complete sale"}
-          </button>
+            <Rule />
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs text-muted">
+                {itemCount} {itemCount === 1 ? "item" : "items"}
+              </span>
+              <span className="text-xl font-medium tabular-nums">
+                {money(runningTotal)}{" "}
+                <span className="text-sm text-muted">RWF</span>
+              </span>
+            </div>
+            <p className="mt-2 pb-5 text-[11px] leading-snug text-muted">
+              The server recalculates the final total from the database prices.
+            </p>
+          </Paper>
 
           {problem && (
-            <div className="mt-3 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-800">
-              <p>{problem}</p>
+            <div
+              role="alert"
+              className="mt-4 rounded-lg border border-red/30 bg-red-bg p-3 text-sm text-red"
+            >
+              <p className="font-medium">{problem}</p>
               {refusals.length > 0 && (
                 <ul className="mt-1 list-disc pl-5">
                   {refusals.map((r) => (
@@ -287,62 +350,130 @@ export default function SalesPage() {
               )}
             </div>
           )}
-        </section>
+
+          <button
+            onClick={completeSale}
+            disabled={submitting || lines.length === 0}
+            className="mt-4 w-full rounded-md bg-pine px-4 py-3 text-sm font-medium text-white hover:bg-[#123a32] disabled:opacity-40"
+          >
+            {submitting ? "Processing…" : "Complete sale"}
+          </button>
+        </aside>
       </div>
+
+      {lines.length > 0 && (
+        <a
+          href="#receipt"
+          className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between bg-pine px-5 py-4 text-white lg:hidden"
+        >
+          <span className="text-sm">
+            {itemCount} {itemCount === 1 ? "item" : "items"}
+          </span>
+          <span className="font-medium tabular-nums">
+            {money(runningTotal)} RWF · View cart
+          </span>
+        </a>
+      )}
     </main>
   );
 }
 
-function ReceiptView({
+function Paper({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="font-mono">
+      <div className="border border-b-0 border-rule bg-surface px-5 pt-5">
+        {children}
+      </div>
+      <div className="receipt-edge" aria-hidden="true" />
+    </div>
+  );
+}
+
+function Rule() {
+  return <div className="my-3 border-t border-dashed border-muted/50" />;
+}
+
+function FinishedReceipt({
   receipt,
   onNewSale,
 }: {
   receipt: Receipt;
   onNewSale: () => void;
 }) {
+  const when = new Date(receipt.sold_at).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
   return (
-    <main className="mx-auto max-w-md p-6">
-      <div className="rounded border border-gray-500 p-5">
-        <h1 className="text-xl font-bold">Receipt</h1>
-        <p className="mt-1 text-xs text-gray-500">
-          No. {receipt.receipt_id}
-          <br />
-          {new Date(receipt.sold_at).toLocaleString()}
+    <main className="mx-auto max-w-sm px-5 py-8">
+      <div className="print:hidden">
+        <span className="grid h-10 w-10 place-items-center rounded-full bg-ok-bg text-ok">
+          <Check className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight">
+          Sale recorded
+        </h1>
+        <p className="mt-1 text-sm text-muted">
+          Stock has been updated. Print the receipt or start the next sale.
         </p>
-
-        <table className="mt-4 w-full text-sm">
-          <tbody>
-            {receipt.lines.map((line) => (
-              <tr key={line.medicine_id} className="border-b border-gray-700">
-                <td className="py-2">
-                  {line.name}
-                  <div className="text-xs text-gray-500">
-                    {line.qty} × {money(line.unit_price)}
-                  </div>
-                </td>
-                <td className="py-2 text-right">{money(line.line_total)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="mt-3 flex justify-between text-lg font-bold">
-          <span>Total</span>
-          <span>{money(receipt.total)} RWF</span>
-        </div>
       </div>
 
-      <div className="mt-4 flex gap-3">
+      <div className="mt-6 print:mt-0">
+        <Paper>
+          <p className="text-center text-sm font-medium tracking-wide">
+            PHARMACY DESK
+          </p>
+          <p className="mt-1 text-center text-xs text-muted">
+            Receipt {receipt.receipt_id.slice(0, 8).toUpperCase()}
+            <br />
+            {when}
+          </p>
+          <Rule />
+          <ul className="text-sm">
+            {receipt.lines.map((line) => (
+              <li key={line.medicine_id} className="py-1.5">
+                <div className="flex justify-between gap-3">
+                  <span className="min-w-0 break-words">{line.name}</span>
+                  <span className="shrink-0 tabular-nums">
+                    {money(line.line_total)}
+                  </span>
+                </div>
+                <p className="text-xs text-muted tabular-nums">
+                  {line.qty} x {money(line.unit_price)}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <Rule />
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm">TOTAL</span>
+            <span className="text-xl font-medium tabular-nums">
+              {money(receipt.total)}{" "}
+              <span className="text-sm text-muted">RWF</span>
+            </span>
+          </div>
+          <p className="pb-5 pt-4 text-center text-xs text-muted">
+            Thank you
+          </p>
+        </Paper>
+      </div>
+
+      <div className="mt-6 flex gap-3 print:hidden">
         <button
           onClick={onNewSale}
-          className="rounded bg-blue-600 px-4 py-2 text-white"
+          className="flex-1 rounded-md bg-pine px-4 py-2.5 text-sm font-medium text-white hover:bg-[#123a32]"
         >
           New sale
         </button>
         <button
           onClick={() => window.print()}
-          className="rounded border border-gray-500 px-4 py-2"
+          className="inline-flex items-center gap-2 rounded-md border border-rule bg-surface px-4 py-2.5 text-sm font-medium"
         >
+          <Printer className="h-4 w-4" aria-hidden="true" />
           Print
         </button>
       </div>

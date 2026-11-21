@@ -30,8 +30,8 @@
   --color-amber-bg: var(--amber-bg);
   --color-ok: var(--ok);
   --color-ok-bg: var(--ok-bg);
-  --font-sans: var(--font-figtree);
-  --font-mono: var(--font-plex-mono);
+  --font-sans: var(--font-figtree), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
 html {
@@ -54,5 +54,20 @@ body {
   * {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* Receipt paper: a torn bottom edge */
+.receipt-edge {
+  height: 12px;
+  background:
+    linear-gradient(135deg, var(--surface) 25%, transparent 25%) -6px 0,
+    linear-gradient(225deg, var(--surface) 25%, transparent 25%) -6px 0;
+  background-size: 12px 12px;
+}
+
+@media print {
+  body {
+    background: #fff;
   }
 }

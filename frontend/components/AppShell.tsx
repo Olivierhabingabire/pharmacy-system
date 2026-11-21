@@ -80,7 +80,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col bg-pine px-3 py-5 text-white md:flex">
+      <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col bg-pine px-3 py-5 text-white md:flex print:hidden">
         <div className="px-3 pb-6">
           <Brand />
         </div>
@@ -88,7 +88,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between bg-pine px-4 py-3 text-white md:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between bg-pine px-4 py-3 text-white md:hidden print:hidden">
         <Brand />
         <button
           onClick={() => setOpen(true)}
@@ -123,7 +123,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <div className="md:pl-60">{children}</div>
+      <div className="md:pl-60 print:pl-0">{children}</div>
     </div>
   );
 }
