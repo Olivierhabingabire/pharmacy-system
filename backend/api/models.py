@@ -31,3 +31,12 @@ class Sale(models.Model):
         managed = False
         db_table = "sales"
         ordering = ["id"]
+
+
+class Profile(models.Model):
+    id = models.UUIDField(primary_key=True)
+    role = models.TextField()
+
+    class Meta:
+        managed = False
+        db_table = "profiles"

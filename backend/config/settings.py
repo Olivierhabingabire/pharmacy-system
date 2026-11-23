@@ -73,10 +73,9 @@ DATABASES = {
 
 
 CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
-
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
-    "DEFAULT_PERMISSION_CLASSES": [],
+    "DEFAULT_AUTHENTICATION_CLASSES": ["api.auth.SupabaseAuthentication"],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "UNAUTHENTICATED_USER": None,
 }
 # Password validation

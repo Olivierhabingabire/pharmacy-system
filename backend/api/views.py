@@ -1,4 +1,3 @@
-import os
 import uuid
 from datetime import timedelta
 from decimal import Decimal
@@ -9,18 +8,23 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Medicine, Sale
+from .permissions import IsManager, IsStaff, ManagerCanWrite
 from .serializers import MedicineSerializer, SaleRequestSerializer
 
+
 class MedicineList(ListCreateAPIView):
+    permission_classes = [ManagerCanWrite]
     queryset = Medicine.objects.all()
     serializer_class = MedicineSerializer
 
 
 class MedicineDetail(RetrieveUpdateDestroyAPIView):
+    permission_classes = [ManagerCanWrite]
     queryset = Medicine.objects.all()
     serializer_class = MedicineSerializer
 
@@ -37,12 +41,14 @@ class MedicineDetail(RetrieveUpdateDestroyAPIView):
 
 
 class SaleCreate(APIView):
+    permission_classes = [IsStaff]
+
     def post(self, request):
         serializer = SaleRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         items = serializer.validated_data["items"]
 
-        seller_id = os.environ["TEMP_SELLER_ID"]  # replaced by the real user at login
+        seller_id = request.user.id  # the verified Supabase user
         today = timezone.localdate()
         wanted = {item["medicine_id"]: item["qty"] for item in items}
 
@@ -121,7 +127,10 @@ class SaleCreate(APIView):
             status=status.HTTP_201_CREATED,
         )
 
+
 class Analytics(APIView):
+    permission_classes = [IsManager]
+
     def get(self, request):
         try:
             days = int(request.query_params.get("days", 7))
@@ -186,5 +195,20 @@ class Analytics(APIView):
                 "to": today.isoformat(),
                 "daily_revenue": daily_revenue,
                 "best_sellers": best_sellers,
+            }
+        )
+    
+
+class Me(APIView):
+    """Who is calling, as proven by the token, and what role they have."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(
+            {
+                "id": request.user.id,
+                "email": request.user.email,
+                "role": request.user.role,
             }
         )
