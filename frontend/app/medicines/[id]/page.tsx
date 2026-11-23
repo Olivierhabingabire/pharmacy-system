@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
-import { API_URL, type Medicine } from "@/lib/api";
+import { API_URL, authFetch, type Medicine } from "@/lib/api";
 import { money } from "@/lib/format";
 import { daysFromToday, medicineStatus, shortDate } from "@/lib/status";
 import MedicineForm from "../MedicineForm";
@@ -26,7 +26,7 @@ export default function MedicineDetailPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${API_URL}/medicines/${id}/`, { signal: controller.signal })
+    authFetch(`${API_URL}/medicines/${id}/`, { signal: controller.signal })
       .then(async (response) => {
         if (response.status === 404) {
           setState({ status: "notfound" });
@@ -57,7 +57,7 @@ export default function MedicineDetailPage() {
     setDeleting(true);
     setDeleteError(null);
     try {
-      const response = await fetch(`${API_URL}/medicines/${id}/`, {
+      const response = await authFetch(`${API_URL}/medicines/${id}/`, {
         method: "DELETE",
       });
       if (response.status === 204) {

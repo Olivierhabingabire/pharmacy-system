@@ -71,3 +71,17 @@ body {
     background: #fff;
   }
 }
+
+/* Sign-in backdrop: deep green with a faint field of pharmacy crosses */
+.cross-field {
+  background-color: var(--pine);
+  background-image:
+    radial-gradient(60% 50% at 50% 38%, rgb(31 166 122 / 0.2), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cpath d='M28 22v12M22 28h12' stroke='%23ffffff' stroke-opacity='0.07' stroke-width='2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+}
+
+/* Browsers tint autofilled fields blue; keep them white */
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+  -webkit-text-fill-color: var(--ink);
+}

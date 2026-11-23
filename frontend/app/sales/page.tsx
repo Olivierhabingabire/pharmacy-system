@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Minus, Plus, Printer, Search, X } from "lucide-react";
-import { API_URL, type Medicine } from "@/lib/api";
+import { API_URL, authFetch, type Medicine } from "@/lib/api";
 import { money } from "@/lib/format";
 import { medicineStatus } from "@/lib/status";
 
@@ -44,7 +44,7 @@ export default function SalesPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${API_URL}/medicines/`, { signal: controller.signal })
+    authFetch(`${API_URL}/medicines/`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`The server answered ${response.status}.`);
@@ -99,7 +99,7 @@ export default function SalesPage() {
     setProblem(null);
     setRefusals([]);
     try {
-      const response = await fetch(`${API_URL}/sales/`, {
+      const response = await authFetch(`${API_URL}/sales/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

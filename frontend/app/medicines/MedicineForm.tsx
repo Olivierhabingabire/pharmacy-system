@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { authFetch } from "@/lib/api";
 
 type Values = {
   name: string;
@@ -51,7 +52,7 @@ export default function MedicineForm({
     setErrors({});
     setMessage(null);
     try {
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

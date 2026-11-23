@@ -1,3 +1,5 @@
+import { supabase } from "./supabase";
+
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
 
@@ -29,3 +31,21 @@ export type Analytics = {
   daily_revenue: DailyRevenue[];
   best_sellers: BestSeller[];
 };
+
+/**
+ * fetch() that sends the signed-in user's token to Django.
+ * If Django answers 401 the session is no longer valid, so we tell the
+ * auth provider to sign the user out.
+ */
+export async function authFetch(input: string, init: RequestInit = {}) {
+  const { data } = await supabase.auth.getSession();
+  const headers = new Headers(init.headers);
+  if (data.session) {
+    headers.set("Authorization", `Bearer ${data.session.access_token}`);
+  }
+  const response = await fetch(input, { ...init, headers });
+  if (response.status === 401 && typeof window !== "undefined") {
+    window.dispatchEvent(new Event("auth:unauthorized"));
+  }
+  return response;
+}

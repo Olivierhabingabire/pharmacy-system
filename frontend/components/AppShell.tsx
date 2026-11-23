@@ -1,14 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { LayoutDashboard, Menu, Pill, ReceiptText, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import {
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Pill,
+  ReceiptText,
+  X,
+} from "lucide-react";
+import { AuthProvider, useAuth, type AuthUser } from "@/lib/auth";
 
 const nav = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/sales", label: "New sale", icon: ReceiptText },
-  { href: "/medicines", label: "Medicines", icon: Pill },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, managerOnly: true },
+  { href: "/sales", label: "New sale", icon: ReceiptText, managerOnly: false },
+  { href: "/medicines", label: "Medicines", icon: Pill, managerOnly: false },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -40,42 +48,141 @@ function Brand() {
 
 function Nav({
   pathname,
+  isManager,
   onNavigate,
 }: {
   pathname: string;
+  isManager: boolean;
   onNavigate?: () => void;
 }) {
   return (
     <nav aria-label="Main">
       <ul className="space-y-1">
-        {nav.map(({ href, label, icon: Icon }) => {
-          const active = isActive(pathname, href);
-          return (
-            <li key={href}>
-              <Link
-                href={href}
-                onClick={onNavigate}
-                aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
-                  active
-                    ? "bg-white/12 text-white"
-                    : "text-white/70 hover:bg-white/6 hover:text-white"
-                }`}
-              >
-                <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
-                {label}
-              </Link>
-            </li>
-          );
-        })}
+        {nav
+          .filter((item) => isManager || !item.managerOnly)
+          .map(({ href, label, icon: Icon }) => {
+            const active = isActive(pathname, href);
+            return (
+              <li key={href}>
+                <Link
+                  href={href}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
+                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
+                    active
+                      ? "bg-white/12 text-white"
+                      : "text-white/70 hover:bg-white/6 hover:text-white"
+                  }`}
+                >
+                  <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+                  {label}
+                </Link>
+              </li>
+            );
+          })}
       </ul>
     </nav>
   );
 }
 
+function Account({ user }: { user: AuthUser }) {
+  const { signOut } = useAuth();
+  return (
+    <div className="border-t border-white/10 px-3 pt-4">
+      <p className="truncate text-sm font-medium" title={user.email}>
+        {user.email}
+      </p>
+      <p className="mt-0.5 text-xs capitalize text-white/60">{user.role}</p>
+      <button
+        onClick={signOut}
+        className="mt-3 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-white/70 hover:bg-white/6 hover:text-white"
+      >
+        <LogOut className="h-4 w-4" aria-hidden="true" />
+        Sign out
+      </button>
+    </div>
+  );
+}
+
+function Splash({ children }: { children?: React.ReactNode }) {
+  return (
+    <div className="grid min-h-screen place-items-center px-6">
+      <div className="max-w-sm text-center">
+        {children ?? <p className="text-sm text-muted">Loading…</p>}
+      </div>
+    </div>
+  );
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+      <Shell>{children}</Shell>
+    </AuthProvider>
+  );
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { state, signOut } = useAuth();
   const [open, setOpen] = useState(false);
+
+  const onLogin = pathname === "/login";
+  const user = state.status === "signedIn" ? state.user : null;
+  const isManager = user?.role === "manager";
+  // The dashboard shows revenue, so only managers may open it.
+  const blocked = !!user && user.role !== null && !isManager && pathname === "/";
+
+  useEffect(() => {
+    if (state.status === "signedOut" && !onLogin) router.replace("/login");
+    if (blocked) router.replace("/sales");
+  }, [state.status, onLogin, blocked, router]);
+
+  if (onLogin) return <>{children}</>;
+  if (state.status === "loading" || state.status === "signedOut" || blocked) {
+    return <Splash />;
+  }
+
+  if (state.status === "error") {
+    return (
+      <Splash>
+        <p className="text-sm text-red">{state.message}</p>
+        <div className="mt-4 flex justify-center gap-3">
+          <button
+            onClick={() => window.location.reload()}
+            className="rounded-md bg-pine px-4 py-2 text-sm font-medium text-white"
+          >
+            Try again
+          </button>
+          <button
+            onClick={signOut}
+            className="rounded-md border border-rule bg-surface px-4 py-2 text-sm"
+          >
+            Sign out
+          </button>
+        </div>
+      </Splash>
+    );
+  }
+
+  if (!user || user.role === null) {
+    return (
+      <Splash>
+        <h1 className="text-lg font-semibold">No role assigned yet</h1>
+        <p className="mt-2 text-sm text-muted">
+          You are signed in as {user?.email}, but your account has no role. Ask
+          a manager to add you as a pharmacist or manager.
+        </p>
+        <button
+          onClick={signOut}
+          className="mt-4 rounded-md border border-rule bg-surface px-4 py-2 text-sm"
+        >
+          Sign out
+        </button>
+      </Splash>
+    );
+  }
 
   return (
     <div className="min-h-screen">
@@ -84,7 +191,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="px-3 pb-6">
           <Brand />
         </div>
-        <Nav pathname={pathname} />
+        <Nav pathname={pathname} isManager={isManager} />
+        <div className="mt-auto">
+          <Account user={user} />
+        </div>
       </aside>
 
       {/* Mobile top bar */}
@@ -118,7 +228,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <Nav pathname={pathname} onNavigate={() => setOpen(false)} />
+            <Nav
+              pathname={pathname}
+              isManager={isManager}
+              onNavigate={() => setOpen(false)}
+            />
+            <div className="mt-auto">
+              <Account user={user} />
+            </div>
           </aside>
         </div>
       )}

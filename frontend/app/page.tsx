@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { API_URL, type Analytics, type Medicine } from "@/lib/api";
+import { API_URL, authFetch, type Analytics, type Medicine } from "@/lib/api";
 import { compact, money } from "@/lib/format";
 import { daysFromToday, shortDate } from "@/lib/status";
 
@@ -12,7 +12,7 @@ type State =
   | { status: "ready"; analytics: Analytics; medicines: Medicine[] };
 
 async function getJson<T>(url: string, signal: AbortSignal): Promise<T> {
-  const response = await fetch(url, { signal });
+  const response = await authFetch(url, { signal });
   if (!response.ok) {
     throw new Error(`The server answered ${response.status}.`);
   }

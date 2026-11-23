@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { Plus, Search } from "lucide-react";
 import SlideOver from "@/components/SlideOver";
-import { API_URL, type Medicine } from "@/lib/api";
+import { API_URL, authFetch, type Medicine } from "@/lib/api";
 import { money } from "@/lib/format";
 import { daysFromToday, medicineStatus, shortDate } from "@/lib/status";
 import MedicineForm from "./MedicineForm";
@@ -69,7 +69,7 @@ function MedicinesView() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch(`${API_URL}/medicines/`, { signal: controller.signal })
+    authFetch(`${API_URL}/medicines/`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(`The server answered ${response.status}.`);
