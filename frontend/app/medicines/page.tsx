@@ -8,6 +8,7 @@ import SlideOver from "@/components/SlideOver";
 import { API_URL, authFetch, type Medicine } from "@/lib/api";
 import { money } from "@/lib/format";
 import { daysFromToday, medicineStatus, shortDate } from "@/lib/status";
+import { useAuth } from "@/lib/auth";
 import MedicineForm from "./MedicineForm";
 
 const PAGE_SIZE = 25;
@@ -55,6 +56,8 @@ export default function MedicinesPage() {
 
 function MedicinesView() {
   const router = useRouter();
+  const { state: auth } = useAuth();
+  const canEdit = auth.status === "signedIn" && auth.user.role === "manager";
   const params = useSearchParams();
   const filterKey = FILTERS.some((f) => f.key === params.get("filter"))
     ? (params.get("filter") as string)
@@ -115,13 +118,15 @@ function MedicinesView() {
               : "Stock, prices and expiry dates"}
           </p>
         </div>
-        <button
-          onClick={() => setAdding(true)}
-          className="inline-flex items-center gap-2 rounded-md bg-pine px-4 py-2 text-sm font-medium text-white hover:bg-[#123a32]"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          Add medicine
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => setAdding(true)}
+            className="inline-flex items-center gap-2 rounded-md bg-pine px-4 py-2 text-sm font-medium text-white hover:bg-[#123a32]"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Add medicine
+          </button>
+        )}
       </header>
 
       {state.status === "loading" && (
@@ -197,7 +202,9 @@ function MedicinesView() {
 
           {medicines.length === 0 ? (
             <p className="mt-6 rounded-lg border border-dashed border-rule p-8 text-center text-sm text-muted">
-              No medicines yet. Use “Add medicine” to create the first one.
+              {canEdit
+                ? "No medicines yet. Use “Add medicine” to create the first one."
+                : "No medicines have been added yet."}
             </p>
           ) : rows.length === 0 ? (
             <div className="mt-6 rounded-lg border border-dashed border-rule p-8 text-center text-sm text-muted">
@@ -300,17 +307,19 @@ function MedicinesView() {
         </>
       )}
 
-      <SlideOver open={adding} title="Add a medicine" onClose={closePanel}>
-        <MedicineForm
-          submitLabel="Add medicine"
-          successText="Medicine added."
-          method="POST"
-          url={`${API_URL}/medicines/`}
-          successStatus={201}
-          resetOnSuccess
-          onSaved={() => setAttempt((n) => n + 1)}
-        />
-      </SlideOver>
+      {canEdit && (
+        <SlideOver open={adding} title="Add a medicine" onClose={closePanel}>
+          <MedicineForm
+            submitLabel="Add medicine"
+            successText="Medicine added."
+            method="POST"
+            url={`${API_URL}/medicines/`}
+            successStatus={201}
+            resetOnSuccess
+            onSaved={() => setAttempt((n) => n + 1)}
+          />
+        </SlideOver>
+      )}
     </main>
   );
 }

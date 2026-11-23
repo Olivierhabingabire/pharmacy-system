@@ -7,6 +7,7 @@ import { ChevronLeft } from "lucide-react";
 import { API_URL, authFetch, type Medicine } from "@/lib/api";
 import { money } from "@/lib/format";
 import { daysFromToday, medicineStatus, shortDate } from "@/lib/status";
+import { useAuth } from "@/lib/auth";
 import MedicineForm from "../MedicineForm";
 
 type State =
@@ -18,6 +19,8 @@ type State =
 export default function MedicineDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { state: auth } = useAuth();
+  const canEdit = auth.status === "signedIn" && auth.user.role === "manager";
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [confirming, setConfirming] = useState(false);
@@ -123,68 +126,76 @@ export default function MedicineDetailPage() {
         <>
           <Facts medicine={state.medicine} />
 
-          <section className="mt-8 rounded-lg border border-rule bg-surface p-5">
-            <h2 className="font-semibold">Edit details</h2>
-            <div className="mt-4 max-w-md">
-              <MedicineForm
-                key={state.medicine.id}
-                submitLabel="Save changes"
-                successText="Changes saved."
-                method="PATCH"
-                url={`${API_URL}/medicines/${id}/`}
-                successStatus={200}
-                initial={{
-                  name: state.medicine.name,
-                  price: state.medicine.price,
-                  stock: String(state.medicine.stock),
-                  expiry_date: state.medicine.expiry_date,
-                }}
-                resetOnSuccess={false}
-                onSaved={() => setAttempt((n) => n + 1)}
-              />
-            </div>
-          </section>
+          {canEdit ? (
+            <>
+              <section className="mt-8 rounded-lg border border-rule bg-surface p-5">
+                <h2 className="font-semibold">Edit details</h2>
+                <div className="mt-4 max-w-md">
+                  <MedicineForm
+                    key={state.medicine.id}
+                    submitLabel="Save changes"
+                    successText="Changes saved."
+                    method="PATCH"
+                    url={`${API_URL}/medicines/${id}/`}
+                    successStatus={200}
+                    initial={{
+                      name: state.medicine.name,
+                      price: state.medicine.price,
+                      stock: String(state.medicine.stock),
+                      expiry_date: state.medicine.expiry_date,
+                    }}
+                    resetOnSuccess={false}
+                    onSaved={() => setAttempt((n) => n + 1)}
+                  />
+                </div>
+              </section>
 
-          <section className="mt-6 rounded-lg border border-red/30 bg-surface p-5">
-            <h2 className="font-semibold">Delete this medicine</h2>
-            <p className="mt-1 text-sm text-muted">
-              A medicine that has been sold cannot be deleted. Set its stock to
-              0 instead.
+              <section className="mt-6 rounded-lg border border-red/30 bg-surface p-5">
+                <h2 className="font-semibold">Delete this medicine</h2>
+                <p className="mt-1 text-sm text-muted">
+                  A medicine that has been sold cannot be deleted. Set its stock to
+                  0 instead.
+                </p>
+                {!confirming ? (
+                  <button
+                    onClick={() => setConfirming(true)}
+                    className="mt-4 rounded-md border border-red/40 px-4 py-2 text-sm font-medium text-red hover:bg-red-bg"
+                  >
+                    Delete medicine
+                  </button>
+                ) : (
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <span className="text-sm font-medium">
+                      Delete {state.medicine.name}?
+                    </span>
+                    <button
+                      onClick={remove}
+                      disabled={deleting}
+                      className="rounded-md bg-red px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                    >
+                      {deleting ? "Deleting…" : "Yes, delete"}
+                    </button>
+                    <button
+                      onClick={() => setConfirming(false)}
+                      disabled={deleting}
+                      className="rounded-md border border-rule px-4 py-2 text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+                {deleteError && (
+                  <p role="alert" className="mt-3 text-sm text-red">
+                    {deleteError}
+                  </p>
+                )}
+              </section>
+            </>
+          ) : (
+            <p className="mt-8 rounded-lg border border-dashed border-rule p-5 text-sm text-muted">
+              Only managers can change or delete medicines.
             </p>
-            {!confirming ? (
-              <button
-                onClick={() => setConfirming(true)}
-                className="mt-4 rounded-md border border-red/40 px-4 py-2 text-sm font-medium text-red hover:bg-red-bg"
-              >
-                Delete medicine
-              </button>
-            ) : (
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <span className="text-sm font-medium">
-                  Delete {state.medicine.name}?
-                </span>
-                <button
-                  onClick={remove}
-                  disabled={deleting}
-                  className="rounded-md bg-red px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                >
-                  {deleting ? "Deleting…" : "Yes, delete"}
-                </button>
-                <button
-                  onClick={() => setConfirming(false)}
-                  disabled={deleting}
-                  className="rounded-md border border-rule px-4 py-2 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-            {deleteError && (
-              <p role="alert" className="mt-3 text-sm text-red">
-                {deleteError}
-              </p>
-            )}
-          </section>
+          )}
         </>
       )}
     </main>
