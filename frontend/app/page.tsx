@@ -1,17 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   BarChart3,
   Boxes,
-  Check,
   CircleCheck,
-  ClipboardList,
-  PackageCheck,
   Pill,
   ShieldCheck,
-  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
@@ -49,85 +46,43 @@ function Brand() {
   );
 }
 
-function DashboardPreview() {
+function PharmacistHero() {
   return (
-    <div className="relative mx-auto w-full max-w-[34rem]">
+    <figure className="relative mx-auto w-full max-w-[31rem] px-3 pb-10 sm:px-7">
       <div
-        className="absolute -inset-5 rounded-[2rem] bg-cross/10 blur-2xl"
+        className="absolute inset-x-7 top-2 h-[88%] rounded-t-[48%] rounded-b-[2rem] bg-cross/15"
         aria-hidden="true"
       />
-      <div className="relative overflow-hidden rounded-2xl border border-rule bg-white shadow-[0_24px_80px_-28px_rgba(12,42,36,0.3)]">
-        <div className="flex items-center justify-between border-b border-rule px-5 py-4">
-          <div className="flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-pine">
-              <Pill className="h-5 w-5 text-cross" aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold">Today at a glance</p>
-              <p className="text-xs text-muted">Your pharmacy overview</p>
-            </div>
-          </div>
-          <span className="rounded-full bg-ok-bg px-2.5 py-1 text-xs font-medium text-ok">
-            Live overview
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3">
-          {[
-            { label: "Today's sales", value: "RWF 248,500", icon: TrendingUp },
-            { label: "Receipts", value: "36", icon: ClipboardList },
-            { label: "In stock", value: "128 items", icon: PackageCheck },
-          ].map(({ label, value, icon: Icon }) => (
-            <div
-              key={label}
-              className="rounded-xl border border-rule bg-paper/60 p-3.5"
-            >
-              <Icon className="h-4 w-4 text-ok" aria-hidden="true" />
-              <p className="mt-3 text-xs text-muted">{label}</p>
-              <p className="mt-1 text-base font-semibold tabular-nums text-pine">
-                {value}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="px-5 pb-5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold">Stock health</p>
-            <span className="text-xs text-muted">This week</span>
-          </div>
-          <div className="mt-4 flex h-24 items-end gap-2 rounded-xl bg-paper/60 px-4 pt-3">
-            {[38, 55, 45, 70, 53, 86, 66, 96, 72, 81, 60, 90].map(
-              (height, index) => (
-                <span
-                  key={index}
-                  className={`flex-1 rounded-t-sm ${
-                    index === 7 ? "bg-cross" : "bg-pine/15"
-                  }`}
-                  style={{ height: `${height}%` }}
-                />
-              ),
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 border-t border-rule bg-ok-bg/50 px-5 py-3.5">
-          <CircleCheck className="h-4 w-4 shrink-0 text-ok" aria-hidden="true" />
-          <p className="text-xs text-ok">
-            Every sale checked for stock and expiry before it is completed.
-          </p>
-        </div>
-      </div>
-
-      <div className="absolute -bottom-5 -left-4 hidden items-center gap-2.5 rounded-xl border border-rule bg-white px-4 py-3 shadow-lg sm:flex">
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-ok-bg">
-          <Check className="h-4 w-4 text-ok" aria-hidden="true" />
-        </span>
-        <span className="text-xs font-medium text-pine">
-          Expired items blocked at checkout
+      <div className="relative aspect-[4/5] overflow-hidden rounded-t-[48%] rounded-b-[2rem] border-[7px] border-white bg-paper shadow-[0_24px_80px_-28px_rgba(12,42,36,0.4)]">
+        <Image
+          src="/pharmacist-hero.jpg"
+          alt="A pharmacist in a white coat standing in a well-stocked pharmacy"
+          fill
+          priority
+          sizes="(max-width: 1024px) 90vw, 42vw"
+          className="object-cover object-[center_30%]"
+        />
+        <div
+          className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-pine/70 to-transparent"
+          aria-hidden="true"
+        />
+        <span className="absolute bottom-5 left-5 inline-flex items-center gap-2 rounded-full bg-white/95 px-3.5 py-2 text-xs font-semibold text-pine shadow-lg backdrop-blur">
+          <CircleCheck className="h-4 w-4 text-ok" aria-hidden="true" />
+          Here for your pharmacy team
         </span>
       </div>
-    </div>
+      <figcaption className="mt-2 text-center text-[11px] text-muted">
+        Photo by{" "}
+        <a
+          href="https://www.pexels.com/photo/young-pharmacist-in-drugstore-19471013/"
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-2 hover:text-pine"
+        >
+          BYB BYB on Pexels
+        </a>
+      </figcaption>
+    </figure>
   );
 }
 
@@ -207,7 +162,7 @@ export default function LandingPage() {
         </div>
 
         <div className="relative px-1 py-2 sm:px-5 sm:py-6 lg:px-0">
-          <DashboardPreview />
+          <PharmacistHero />
         </div>
       </section>
 
