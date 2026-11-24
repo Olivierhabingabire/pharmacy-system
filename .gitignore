@@ -6,3 +6,5 @@ __pycache__/
 node_modules/
 .next/
 db.sqlite3
+# keep the example file in Git
+!.env.example
