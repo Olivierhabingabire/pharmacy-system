@@ -24,6 +24,16 @@ email and password), then:
 
     curl -H "Authorization: Bearer YOUR_TOKEN" https://pharmacy-api-2v30.onrender.com/api/medicines/
 
+### Run the tests
+
+```
+cd backend
+venv\Scripts\activate
+python manage.py test --settings=config.test_settings
+```
+
+The tests use a temporary in-memory database, so your Supabase data is never touched.
+
 ### Deployment
 
 - Frontend: Vercel, root directory `frontend`.
