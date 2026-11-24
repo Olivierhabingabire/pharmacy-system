@@ -1,3 +1,142 @@
-from django.test import TestCase
+import uuid
+from datetime import timedelta
+from decimal import Decimal
 
-# Create your tests here.
+from django.utils import timezone
+from rest_framework.test import APITestCase
+
+from .auth import SupabaseUser
+from .models import Medicine, Sale
+
+
+def make_user(role):
+    return SupabaseUser(
+        id=str(uuid.uuid4()), email=f"{role}@test.com", role=role
+    )
+
+
+class PharmacyApiTests(APITestCase):
+    def setUp(self):
+        today = timezone.localdate()
+        self.good = Medicine.objects.create(
+            name="Paracetamol", price=Decimal("500.00"), stock=10,
+            expiry_date=today + timedelta(days=90),
+        )
+        self.expired = Medicine.objects.create(
+            name="Old Syrup", price=Decimal("1200.00"), stock=5,
+            expiry_date=today - timedelta(days=1),
+        )
+        self.empty = Medicine.objects.create(
+            name="Amoxicillin", price=Decimal("800.00"), stock=0,
+            expiry_date=today + timedelta(days=90),
+        )
+
+    def login(self, role):
+        self.client.force_authenticate(user=make_user(role))
+
+    def sell(self, items):
+        return self.client.post("/api/sales/", {"items": items}, format="json")
+
+    # 1. Success: a valid sale returns 201, a receipt, and lowers stock
+    def test_sale_success(self):
+        self.login("pharmacist")
+        response = self.sell([{"medicine_id": self.good.id, "qty": 3}])
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["total"], "1500.00")
+        self.good.refresh_from_db()
+        self.assertEqual(self.good.stock, 7)
+        self.assertEqual(Sale.objects.count(), 1)
+
+    # 2. Bad input: zero quantity and an empty cart give 400
+    def test_sale_bad_input_returns_400(self):
+        self.login("pharmacist")
+        zero_qty = self.sell([{"medicine_id": self.good.id, "qty": 0}])
+        self.assertEqual(zero_qty.status_code, 400)
+        empty_cart = self.sell([])
+        self.assertEqual(empty_cart.status_code, 400)
+        self.assertEqual(Sale.objects.count(), 0)
+
+    # 3. Business rule: an expired medicine cannot be sold
+    def test_cannot_sell_expired_medicine(self):
+        self.login("pharmacist")
+        response = self.sell([{"medicine_id": self.expired.id, "qty": 1}])
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data["errors"][0]["error"], "expired")
+        self.expired.refresh_from_db()
+        self.assertEqual(self.expired.stock, 5)
+        self.assertEqual(Sale.objects.count(), 0)
+
+    # 4. Business rule: out-of-stock and over-quantity are refused
+    def test_cannot_sell_out_of_stock_or_too_many(self):
+        self.login("pharmacist")
+        out = self.sell([{"medicine_id": self.empty.id, "qty": 1}])
+        self.assertEqual(out.status_code, 400)
+        self.assertEqual(out.data["errors"][0]["error"], "out of stock")
+        too_many = self.sell([{"medicine_id": self.good.id, "qty": 999}])
+        self.assertEqual(too_many.status_code, 400)
+        self.good.refresh_from_db()
+        self.assertEqual(self.good.stock, 10)
+
+    # 5. Missing record: unknown medicine gives 404
+    def test_missing_medicine_returns_404(self):
+        self.login("pharmacist")
+        sale = self.sell([{"medicine_id": 999999, "qty": 1}])
+        self.assertEqual(sale.status_code, 404)
+        detail = self.client.get("/api/medicines/999999/")
+        self.assertEqual(detail.status_code, 404)
+
+    # 6. No login: 401
+    def test_no_token_returns_401(self):
+        response = self.client.get("/api/medicines/")
+        self.assertEqual(response.status_code, 401)
+        sale = self.sell([{"medicine_id": self.good.id, "qty": 1}])
+        self.assertEqual(sale.status_code, 401)
+
+    # 7. Wrong role: a pharmacist cannot create medicines or see analytics
+    def test_pharmacist_cannot_manage_stock_or_analytics(self):
+        self.login("pharmacist")
+        create = self.client.post(
+            "/api/medicines/",
+            {"name": "New", "price": "100.00", "stock": 5,
+             "expiry_date": "2030-01-01"},
+            format="json",
+        )
+        self.assertEqual(create.status_code, 403)
+        self.assertEqual(self.client.get("/api/analytics/").status_code, 403)
+        self.assertEqual(self.client.delete(
+            f"/api/medicines/{self.good.id}/").status_code, 403)
+
+    # 8. A signed-in user with no role row is refused
+    def test_user_without_role_is_forbidden(self):
+        self.login(None)
+        self.assertEqual(self.client.get("/api/medicines/").status_code, 403)
+
+    # 9. Manager: can create a medicine; bad input gives 400
+    def test_manager_can_create_medicine(self):
+        self.login("manager")
+        ok = self.client.post(
+            "/api/medicines/",
+            {"name": "Ibuprofen", "price": "300.00", "stock": 20,
+             "expiry_date": "2030-01-01"},
+            format="json",
+        )
+        self.assertEqual(ok.status_code, 201)
+        bad = self.client.post(
+            "/api/medicines/",
+            {"name": "Bad", "price": "-5", "stock": -1,
+             "expiry_date": "2030-01-01"},
+            format="json",
+        )
+        self.assertEqual(bad.status_code, 400)
+
+    # 10. Manager: analytics shows the sale after it happens
+    def test_manager_analytics_after_sale(self):
+        self.login("pharmacist")
+        self.sell([{"medicine_id": self.good.id, "qty": 2}])
+        self.login("manager")
+        response = self.client.get("/api/analytics/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["best_sellers"][0]["name"], "Paracetamol")
+        self.assertEqual(response.data["best_sellers"][0]["qty_sold"], 2)
+        bad = self.client.get("/api/analytics/?days=abc")
+        self.assertEqual(bad.status_code, 400)
