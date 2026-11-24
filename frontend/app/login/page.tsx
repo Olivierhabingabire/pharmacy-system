@@ -28,7 +28,7 @@ export default function LoginPage() {
   // Once the provider knows who signed in, go to that role's home page.
   useEffect(() => {
     if (state.status === "signedIn") {
-      router.replace(state.user.role === "manager" ? "/" : "/sales");
+      router.replace(state.user.role === "manager" ? "/dashboard" : "/sales");
     }
   }, [state, router]);
 

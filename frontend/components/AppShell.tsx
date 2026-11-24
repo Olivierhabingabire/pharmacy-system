@@ -14,13 +14,13 @@ import {
 import { AuthProvider, useAuth, type AuthUser } from "@/lib/auth";
 
 const nav = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, managerOnly: true },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, managerOnly: true },
   { href: "/sales", label: "New sale", icon: ReceiptText, managerOnly: false },
   { href: "/medicines", label: "Medicines", icon: Pill, managerOnly: false },
 ];
 
 function isActive(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 function Brand() {
@@ -129,17 +129,21 @@ function Shell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
 
   const onLogin = pathname === "/login";
+  const onLanding = pathname === "/";
   const user = state.status === "signedIn" ? state.user : null;
   const isManager = user?.role === "manager";
   // The dashboard shows revenue, so only managers may open it.
-  const blocked = !!user && user.role !== null && !isManager && pathname === "/";
+  const blocked =
+    !!user && user.role !== null && !isManager && pathname === "/dashboard";
 
   useEffect(() => {
-    if (state.status === "signedOut" && !onLogin) router.replace("/login");
+    if (state.status === "signedOut" && !onLogin && !onLanding) {
+      router.replace("/login");
+    }
     if (blocked) router.replace("/sales");
-  }, [state.status, onLogin, blocked, router]);
+  }, [state.status, onLogin, onLanding, blocked, router]);
 
-  if (onLogin) return <>{children}</>;
+  if (onLogin || onLanding) return <>{children}</>;
   if (state.status === "loading" || state.status === "signedOut" || blocked) {
     return <Splash />;
   }
