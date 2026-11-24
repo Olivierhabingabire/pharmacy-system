@@ -21,6 +21,8 @@ const inputClass =
   "w-full rounded-lg border border-rule bg-surface py-2.5 pl-10 text-sm placeholder:text-muted/70 focus:border-cross focus:outline-none focus:ring-2 focus:ring-cross/30";
 
 type Mode = "signIn" | "register";
+const MIN_PASSWORD_LENGTH = 6;
+const MIN_REGISTRATION_CODE_LENGTH = 12;
 
 async function responseError(response: Response) {
   const body = (await response.json().catch(() => ({}))) as {
@@ -70,10 +72,29 @@ export default function LoginPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
-    setSubmitting(true);
     setError(null);
     setNotice(null);
 
+    if (mode === "register") {
+      if (!fullName.trim()) {
+        setError("Enter your full name.");
+        return;
+      }
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        setError(
+          `Use a password with at least ${MIN_PASSWORD_LENGTH} characters.`,
+        );
+        return;
+      }
+      if (registrationCode.length < MIN_REGISTRATION_CODE_LENGTH) {
+        setError(
+          `Enter the manager code (at least ${MIN_REGISTRATION_CODE_LENGTH} characters).`,
+        );
+        return;
+      }
+    }
+
+    setSubmitting(true);
     try {
       if (mode === "signIn") {
         const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -313,7 +334,9 @@ export default function LoginPage() {
                     autoComplete={
                       mode === "register" ? "new-password" : "current-password"
                     }
-                    minLength={mode === "register" ? 8 : undefined}
+                    minLength={
+                      mode === "register" ? MIN_PASSWORD_LENGTH : undefined
+                    }
                     required
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -336,10 +359,17 @@ export default function LoginPage() {
               </div>
 
               {mode === "register" && (
-                <RegistrationCodeField
-                  value={registrationCode}
-                  onChange={setRegistrationCode}
-                />
+                <>
+                  <RegistrationCodeField
+                    value={registrationCode}
+                    onChange={setRegistrationCode}
+                  />
+                  <p className="-mt-3 text-xs leading-5 text-muted">
+                    Password: at least {MIN_PASSWORD_LENGTH} characters.
+                    Registration code: at least{" "}
+                    {MIN_REGISTRATION_CODE_LENGTH} characters.
+                  </p>
+                </>
               )}
 
               {problem && <Problem message={problem} />}
@@ -347,15 +377,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={
-                  submitting ||
-                  !email ||
-                  !password ||
-                  (mode === "register" &&
-                    (!fullName.trim() ||
-                      password.length < 8 ||
-                      registrationCode.length < 12))
-                }
+                disabled={submitting}
                 className="mt-1 flex items-center justify-center gap-2 rounded-lg bg-pine px-4 py-2.5 text-sm font-medium text-white hover:bg-[#123a32] disabled:opacity-50"
               >
                 {submitting && <Spinner />}
