@@ -77,6 +77,10 @@ CORS_ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("FRONTEND_URL", "http:
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["api.auth.SupabaseAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_THROTTLE_RATES": {
+        "public_registration": "10/min",
+        "pharmacist_activation": "10/min",
+    },
     "UNAUTHENTICATED_USER": None,
 }
 # Password validation

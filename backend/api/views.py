@@ -2,19 +2,27 @@ import uuid
 from datetime import timedelta
 from decimal import Decimal
 
+from django.contrib.auth.hashers import check_password, make_password
 from django.db import IntegrityError, transaction
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Medicine, Sale
+from .models import Medicine, Profile, RegistrationSetting, Sale
 from .permissions import IsManager, IsStaff, ManagerCanWrite
-from .serializers import MedicineSerializer, SaleRequestSerializer
+from .serializers import (
+    ActivatePharmacistSerializer,
+    MedicineSerializer,
+    RegistrationCodeSerializer,
+    SaleRequestSerializer,
+    SetRegistrationCodeSerializer,
+)
+from .throttles import RegistrationIPThrottle
 
 
 class MedicineList(ListCreateAPIView):
@@ -210,5 +218,116 @@ class Me(APIView):
                 "id": request.user.id,
                 "email": request.user.email,
                 "role": request.user.role,
+                "full_name": request.user.full_name,
             }
+        )
+
+
+class RegistrationCode(APIView):
+    permission_classes = [IsManager]
+
+    def get(self, request):
+        return Response(
+            {"configured": RegistrationSetting.objects.filter(pk=1).exists()}
+        )
+
+    def put(self, request):
+        serializer = SetRegistrationCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        RegistrationSetting.objects.update_or_create(
+            pk=1,
+            defaults={"code_hash": make_password(serializer.validated_data["code"])},
+        )
+        return Response({"configured": True})
+
+
+class ValidateRegistrationCode(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [RegistrationIPThrottle]
+    throttle_scope = "public_registration"
+
+    def post(self, request):
+        serializer = RegistrationCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        setting = RegistrationSetting.objects.filter(pk=1).first()
+        if not setting or not check_password(
+            serializer.validated_data["code"], setting.code_hash
+        ):
+            return Response(
+                {"detail": "The pharmacist registration code is not valid."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response({"valid": True})
+
+
+class ActivatePharmacist(APIView):
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [RegistrationIPThrottle]
+    throttle_scope = "pharmacist_activation"
+
+    def post(self, request):
+        if request.user.role is not None:
+            return Response(
+                {"detail": "This account already has a staff role."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        serializer = ActivatePharmacistSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        setting = RegistrationSetting.objects.filter(pk=1).first()
+        if not setting or not check_password(
+            serializer.validated_data["code"], setting.code_hash
+        ):
+            return Response(
+                {"detail": "The pharmacist registration code is not valid."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        email = request.user.email
+        full_name = (
+            serializer.validated_data["full_name"]
+            or request.user.full_name
+            or email
+        )
+        profile, created = Profile.objects.get_or_create(
+            id=request.user.id,
+            defaults={
+                "role": "pharmacist",
+                "email": email,
+                "full_name": full_name,
+            },
+        )
+        if not created:
+            return Response(
+                {"detail": "This account already has a staff role."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        return Response(
+            {
+                "id": str(profile.id),
+                "email": profile.email,
+                "full_name": profile.full_name,
+                "role": profile.role,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class PharmacistList(APIView):
+    permission_classes = [IsManager]
+
+    def get(self, request):
+        pharmacists = Profile.objects.filter(role="pharmacist").order_by(
+            "full_name", "email"
+        )
+        return Response(
+            [
+                {
+                    "id": str(profile.id),
+                    "email": profile.email,
+                    "full_name": profile.full_name,
+                }
+                for profile in pharmacists
+            ]
         )

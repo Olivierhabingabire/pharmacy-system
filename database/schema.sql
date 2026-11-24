@@ -3,7 +3,15 @@
 
 create table profiles (
   id uuid primary key references auth.users(id) on delete cascade,
-  role text not null check (role in ('pharmacist', 'manager'))
+  role text not null check (role in ('pharmacist', 'manager')),
+  email text not null default '',
+  full_name text not null default ''
+);
+
+create table registration_settings (
+  id smallint primary key check (id = 1),
+  code_hash text not null,
+  updated_at timestamptz not null default now()
 );
 
 create table medicines (
@@ -28,5 +36,6 @@ create table sales (
 -- or write these tables. Only Django, connecting with the database password,
 -- can. This is deliberate.
 alter table profiles enable row level security;
+alter table registration_settings enable row level security;
 alter table medicines enable row level security;
 alter table sales enable row level security;

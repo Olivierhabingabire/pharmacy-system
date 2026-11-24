@@ -83,7 +83,7 @@ Three rules explain the design:
 | pharmacist | Read medicines and complete sales |
 | manager | Everything a pharmacist can, plus create, edit and delete medicines and read the sales report |
 
-Accounts are created by a manager in Supabase (Authentication, Users). A user's role is a row in the `profiles` table. There is no public sign-up, on purpose: staff accounts should not be self-service.
+Managers set a shared pharmacist registration code in **Staff access**. A new pharmacist signs up with their name, email, password, and that code. The backend verifies the code before granting the pharmacist role; managers can see the authorized pharmacist roster in the same screen. The code is stored as a password hash and can be changed by a manager at any time. Changing it only affects future registrations.
 
 ## Run it locally
 
@@ -94,8 +94,15 @@ Python 3.12 or newer, Node.js 20.9 or newer, Git, and a free Supabase project.
 ### 1. Database
 
 1. In your Supabase project, find the **Project URL** and the **Publishable key** (Project Settings, API Keys), and the **Session pooler** connection details (the green **Connect** button).
-2. Open the **SQL Editor** and run `database/schema.sql`, then `database/seed.sql`.
-3. Under **Authentication, Users**, add one pharmacist and one manager (tick **Auto Confirm User**). Copy each user's UID and run the `insert into profiles` statement shown at the bottom of `database/seed.sql`.
+2. For a new database, open the **SQL Editor** and run `database/schema.sql`, then `database/seed.sql`. For an existing Pharmacy Desk database, run `database/registration.sql` once instead; do not rerun the schema or seed scripts.
+3. Under **Authentication, Users**, create the first manager (tick **Auto Confirm User**). Copy their UID and insert their manager profile:
+
+   ```sql
+   insert into profiles (id, role, email)
+   values ('MANAGER-UID-HERE', 'manager', 'manager@example.com');
+   ```
+
+4. In Supabase Auth, enable email sign-ups. Sign in as the manager, open **Staff access**, and set a shared code of at least 12 characters. Give it only to pharmacists you want to authorize. If email confirmation is enabled, pharmacists confirm their email before activating their account with the code.
 
 ### 2. Backend
 
@@ -217,6 +224,10 @@ curl.exe "http://127.0.0.1:8000/api/analytics/?days=7&limit=5" -H "Authorization
 | Method | Path | Who | Success | Errors |
 |---|---|---|---|---|
 | GET | `/api/me/` | any signed-in user | 200 | 401 |
+| GET, PUT | `/api/registration/code/` | manager | 200 | 400, 401, 403 |
+| POST | `/api/registration/validate/` | anyone with the code | 200 | 400, 429 |
+| POST | `/api/registration/activate/` | signed-in account without a role | 201 | 400, 401, 409, 429 |
+| GET | `/api/staff/pharmacists/` | manager | 200 | 401, 403 |
 | GET | `/api/medicines/` | pharmacist, manager | 200 | 401, 403 |
 | POST | `/api/medicines/` | manager | 201 | 400, 401, 403 |
 | GET | `/api/medicines/<id>/` | pharmacist, manager | 200 | 401, 403, 404 |
@@ -234,7 +245,8 @@ curl.exe "http://127.0.0.1:8000/api/analytics/?days=7&limit=5" -H "Authorization
 | 401 | The token is missing, forged or expired: Django does not know who you are |
 | 403 | Django knows who you are, but your role may not do this (or you have no role) |
 | 404 | No such medicine |
-| 409 | A medicine that has been sold cannot be deleted |
+| 409 | A medicine that has been sold cannot be deleted, or an account already has a staff role |
+| 429 | Registration-code attempts are temporarily rate-limited |
 
 ## The sale rule
 
@@ -249,6 +261,7 @@ pharmacy-system/
 ├── README.md
 ├── database/
 │   ├── schema.sql          Tables, constraints, Row Level Security
+│   ├── registration.sql    Registration setup for an existing database
 │   └── seed.sql            Sample medicines (one expired, one out of stock)
 ├── backend/                Django API
 │   ├── config/             Settings and root URLs
@@ -258,19 +271,20 @@ pharmacy-system/
 │   │   ├── models.py       Maps the Supabase tables (unmanaged)
 │   │   ├── serializers.py  Input validation and JSON
 │   │   ├── views.py        Endpoints and the sale rule
+│   │   ├── throttles.py    Rate limits registration-code attempts
 │   │   └── urls.py
 │   ├── get_token.py        Prints a token for curl
 │   ├── check_roles.py      Checks the 401 and 403 rules with real tokens
 │   └── requirements.txt
 └── frontend/               Next.js app
-    ├── app/                Pages: dashboard, medicines, sales, sign-in
+    ├── app/                Pages: dashboard, staff access, medicines, sales, sign-in/register
     ├── components/         Sidebar shell, slide-in panel
     └── lib/                API client, auth provider, helpers
 ```
 
 ## Known limitations
 
-- No self-service sign-up or password reset: a manager creates accounts in Supabase.
+- Pharmacists can register only with the shared manager-issued code. Managers create accounts in Supabase; no public manager registration is available.
 - Supabase keeps the session in the browser's local storage. A hardened deployment would use httpOnly cookies.
 - The medicine list is paginated in the browser; the API returns every row.
 - Sales cannot be edited or voided.

@@ -9,15 +9,19 @@ import {
   Menu,
   Pill,
   ReceiptText,
+  Users,
   X,
 } from "lucide-react";
 import { AuthProvider, useAuth, type AuthUser } from "@/lib/auth";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, managerOnly: true },
+  { href: "/staff-access", label: "Staff access", icon: Users, managerOnly: true },
   { href: "/sales", label: "New sale", icon: ReceiptText, managerOnly: false },
   { href: "/medicines", label: "Medicines", icon: Pill, managerOnly: false },
 ];
+
+const managerOnlyPaths = ["/dashboard", "/staff-access"];
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -132,16 +136,28 @@ function Shell({ children }: { children: React.ReactNode }) {
   const onLanding = pathname === "/";
   const user = state.status === "signedIn" ? state.user : null;
   const isManager = user?.role === "manager";
-  // The dashboard shows revenue, so only managers may open it.
+  const userRole = user?.role;
   const blocked =
-    !!user && user.role !== null && !isManager && pathname === "/dashboard";
+    !!user &&
+    user.role !== null &&
+    !isManager &&
+    managerOnlyPaths.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+    );
 
   useEffect(() => {
     if (state.status === "signedOut" && !onLogin && !onLanding) {
       router.replace("/login");
     }
+    if (
+      state.status === "signedIn" &&
+      userRole === null &&
+      !onLogin
+    ) {
+      router.replace("/login");
+    }
     if (blocked) router.replace("/sales");
-  }, [state.status, onLogin, onLanding, blocked, router]);
+  }, [state.status, userRole, onLogin, onLanding, blocked, router]);
 
   if (onLogin || onLanding) return <>{children}</>;
   if (state.status === "loading" || state.status === "signedOut" || blocked) {

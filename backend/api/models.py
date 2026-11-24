@@ -36,7 +36,19 @@ class Sale(models.Model):
 class Profile(models.Model):
     id = models.UUIDField(primary_key=True)
     role = models.TextField()
+    email = models.EmailField(default="", blank=True)
+    full_name = models.TextField(default="", blank=True)
 
     class Meta:
         managed = False
         db_table = "profiles"
+
+
+class RegistrationSetting(models.Model):
+    id = models.PositiveSmallIntegerField(primary_key=True)
+    code_hash = models.TextField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
+        db_table = "registration_settings"

@@ -92,10 +92,16 @@ export default function LandingPage() {
     state.status === "signedIn"
       ? state.user.role === "manager"
         ? "/dashboard"
-        : "/sales"
+        : state.user.role === "pharmacist"
+          ? "/sales"
+          : "/login"
       : "/login";
   const actionLabel =
-    state.status === "signedIn" ? "Open your workspace" : "Staff sign in";
+    state.status !== "signedIn"
+      ? "Staff sign in"
+      : state.user.role === null
+        ? "Activate account"
+        : "Open your workspace";
 
   return (
     <main className="min-h-screen overflow-hidden bg-white">

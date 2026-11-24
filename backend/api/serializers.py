@@ -32,3 +32,19 @@ class SaleRequestSerializer(serializers.Serializer):
                 "Each medicine may appear only once in a sale."
             )
         return items
+
+
+class RegistrationCodeSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=128, trim_whitespace=False)
+
+
+class SetRegistrationCodeSerializer(RegistrationCodeSerializer):
+    code = serializers.CharField(
+        min_length=12, max_length=128, trim_whitespace=False
+    )
+
+
+class ActivatePharmacistSerializer(RegistrationCodeSerializer):
+    full_name = serializers.CharField(
+        max_length=200, trim_whitespace=True, required=False, allow_blank=True
+    )

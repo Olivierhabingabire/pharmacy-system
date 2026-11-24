@@ -6,7 +6,12 @@ import { API_URL } from "./api";
 import { supabase } from "./supabase";
 
 export type Role = "pharmacist" | "manager" | null;
-export type AuthUser = { id: string; email: string; role: Role };
+export type AuthUser = {
+  id: string;
+  email: string;
+  full_name: string;
+  role: Role;
+};
 
 export type AuthState =
   | { status: "loading" }
@@ -19,7 +24,12 @@ type Me = { userId: string; user?: AuthUser; error?: string };
 const AuthContext = createContext<{
   state: AuthState;
   signOut: () => Promise<void>;
-}>({ state: { status: "loading" }, signOut: async () => {} });
+  refreshUser: () => void;
+}>({
+  state: { status: "loading" },
+  signOut: async () => {},
+  refreshUser: () => {},
+});
 
 export function useAuth() {
   return useContext(AuthContext);
@@ -29,6 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // undefined = still reading storage, null = signed out
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [me, setMe] = useState<Me | null>(null);
+  const [refreshVersion, setRefreshVersion] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -71,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       });
     return () => controller.abort();
-  }, [token, userId]);
+  }, [token, userId, refreshVersion]);
 
   let state: AuthState;
   if (session === undefined) state = { status: "loading" };
@@ -84,7 +95,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ state, signOut: async () => void (await supabase.auth.signOut()) }}
+      value={{
+        state,
+        signOut: async () => void (await supabase.auth.signOut()),
+        refreshUser: () => {
+          setMe(null);
+          setRefreshVersion((version) => version + 1);
+        },
+      }}
     >
       {children}
     </AuthContext.Provider>

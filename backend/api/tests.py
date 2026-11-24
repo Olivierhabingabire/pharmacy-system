@@ -2,11 +2,12 @@ import uuid
 from datetime import timedelta
 from decimal import Decimal
 
+from django.contrib.auth.hashers import check_password, make_password
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from .auth import SupabaseUser
-from .models import Medicine, Sale
+from .models import Medicine, Profile, RegistrationSetting, Sale
 
 
 def make_user(role):
@@ -140,3 +141,95 @@ class PharmacyApiTests(APITestCase):
         self.assertEqual(response.data["best_sellers"][0]["qty_sold"], 2)
         bad = self.client.get("/api/analytics/?days=abc")
         self.assertEqual(bad.status_code, 400)
+
+    def test_manager_sets_registration_code_as_a_hash(self):
+        self.login("manager")
+        too_short = self.client.put(
+            "/api/registration/code/",
+            {"code": "too-short"},
+            format="json",
+        )
+        self.assertEqual(too_short.status_code, 400)
+
+        response = self.client.put(
+            "/api/registration/code/",
+            {"code": "staff-registration-code"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        setting = RegistrationSetting.objects.get(pk=1)
+        self.assertTrue(check_password("staff-registration-code", setting.code_hash))
+        self.assertNotEqual(setting.code_hash, "staff-registration-code")
+
+    def test_pharmacist_cannot_change_registration_code(self):
+        self.login("pharmacist")
+        response = self.client.put(
+            "/api/registration/code/",
+            {"code": "staff-registration-code"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_code_authorizes_registration_and_adds_pharmacist_to_roster(self):
+        RegistrationSetting.objects.create(
+            id=1,
+            code_hash=make_password("staff-registration-code"),
+        )
+        valid = self.client.post(
+            "/api/registration/validate/",
+            {"code": "staff-registration-code"},
+            format="json",
+        )
+        invalid = self.client.post(
+            "/api/registration/validate/",
+            {"code": "incorrect-code"},
+            format="json",
+        )
+        self.assertEqual(valid.status_code, 200)
+        self.assertEqual(invalid.status_code, 400)
+
+        user = make_user(None)
+        self.client.force_authenticate(user=user)
+        activated = self.client.post(
+            "/api/registration/activate/",
+            {"code": "staff-registration-code", "full_name": "Aline Pharmacist"},
+            format="json",
+        )
+        self.assertEqual(activated.status_code, 201)
+        self.assertEqual(activated.data["role"], "pharmacist")
+        profile = Profile.objects.get(id=user.id)
+        self.assertEqual(profile.email, user.email)
+        self.assertEqual(profile.full_name, "Aline Pharmacist")
+        duplicate = self.client.post(
+            "/api/registration/activate/",
+            {"code": "staff-registration-code", "full_name": "Aline Pharmacist"},
+            format="json",
+        )
+        self.assertEqual(duplicate.status_code, 409)
+
+        self.login("manager")
+        roster = self.client.get("/api/staff/pharmacists/")
+        self.assertEqual(roster.status_code, 200)
+        self.assertEqual(roster.data[0]["email"], user.email)
+        self.assertEqual(roster.data[0]["full_name"], "Aline Pharmacist")
+
+    def test_pharmacist_registration_requires_authentication_and_valid_code(self):
+        anonymous = self.client.post(
+            "/api/registration/activate/",
+            {"code": "staff-registration-code", "full_name": "Test Pharmacist"},
+            format="json",
+        )
+        self.assertEqual(anonymous.status_code, 401)
+
+        RegistrationSetting.objects.create(
+            id=1,
+            code_hash=make_password("staff-registration-code"),
+        )
+        self.login(None)
+        invalid = self.client.post(
+            "/api/registration/activate/",
+            {"code": "incorrect-code", "full_name": "Test Pharmacist"},
+            format="json",
+        )
+        self.assertEqual(invalid.status_code, 400)
+        self.assertFalse(Profile.objects.exists())

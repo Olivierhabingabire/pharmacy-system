@@ -12,9 +12,8 @@ insert into medicines (name, price, stock, expiry_date) values
   ('Old antacid',         400,  30, current_date - 20),
   ('Zinc tablets',        350,   0, current_date + 300);
 
--- After creating a pharmacist and a manager under Authentication > Users,
--- copy each user's UID and run (replace the placeholders):
+-- After creating the first manager under Authentication > Users, copy the
+-- user's UID and run (replace the placeholders):
 --
--- insert into profiles (id, role) values
---   ('PHARMACIST-UID-HERE', 'pharmacist'),
---   ('MANAGER-UID-HERE', 'manager');
+-- insert into profiles (id, role, email)
+-- values ('MANAGER-UID-HERE', 'manager', 'manager@example.com');
