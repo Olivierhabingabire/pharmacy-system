@@ -43,7 +43,8 @@ The tests use a temporary in-memory database, so your Supabase data is never tou
   Build: `pip install -r requirements.txt && python manage.py collectstatic --noinput`.
   Start: `gunicorn config.wsgi`.
   Variables: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `FRONTEND_URL`,
-  `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SUPABASE_URL`.
+  `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SUPABASE_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY` (server-side only; never expose it to the frontend).
 - Database and login: Supabase.
 
 ## Stack
@@ -102,7 +103,7 @@ Python 3.12 or newer, Node.js 20.9 or newer, Git, and a free Supabase project.
    values ('MANAGER-UID-HERE', 'manager', 'manager@example.com');
    ```
 
-4. In Supabase Auth, enable email sign-ups. Sign in as the manager, open **Staff access**, and set a shared code of at least 12 characters. Give it only to pharmacists you want to authorize. If email confirmation is enabled, pharmacists confirm their email before activating their account with the code.
+4. In Supabase Auth, copy the project's service-role key into the backend's `.env` as `SUPABASE_SERVICE_ROLE_KEY` (and into the Render backend environment in production). Keep this key private and never add it to frontend environment variables. Sign in as the manager, open **Staff access**, and set a shared code of at least 12 characters. Give it only to pharmacists you want to authorize. A valid code lets the backend create an already-confirmed account, which can sign in immediately without email confirmation. If the same email has a pending unconfirmed account from the earlier signup flow, registration confirms and activates that pending account.
 
 ### 2. Backend
 
@@ -226,6 +227,7 @@ curl.exe "http://127.0.0.1:8000/api/analytics/?days=7&limit=5" -H "Authorization
 | GET | `/api/me/` | any signed-in user | 200 | 401 |
 | GET, PUT | `/api/registration/code/` | manager | 200 | 400, 401, 403 |
 | POST | `/api/registration/validate/` | anyone with the code | 200 | 400, 429 |
+| POST | `/api/registration/register/` | anyone with the code | 201 | 400, 409, 429, 502, 503 |
 | POST | `/api/registration/activate/` | signed-in account without a role | 201 | 400, 401, 409, 429 |
 | GET | `/api/staff/pharmacists/` | manager | 200 | 401, 403 |
 | GET | `/api/medicines/` | pharmacist, manager | 200 | 401, 403 |

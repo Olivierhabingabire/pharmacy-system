@@ -7,6 +7,7 @@ from .views import (
     MedicineList,
     Me,
     PharmacistList,
+    RegisterPharmacist,
     RegistrationCode,
     SaleCreate,
     ValidateRegistrationCode,
@@ -20,6 +21,7 @@ urlpatterns = [
     path("me/", Me.as_view()),
     path("registration/code/", RegistrationCode.as_view()),
     path("registration/validate/", ValidateRegistrationCode.as_view()),
+    path("registration/register/", RegisterPharmacist.as_view()),
     path("registration/activate/", ActivatePharmacist.as_view()),
     path("staff/pharmacists/", PharmacistList.as_view()),
 ]

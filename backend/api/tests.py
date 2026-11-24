@@ -5,9 +5,11 @@ from decimal import Decimal
 from django.contrib.auth.hashers import check_password, make_password
 from django.utils import timezone
 from rest_framework.test import APITestCase
+from unittest.mock import patch
 
 from .auth import SupabaseUser
 from .models import Medicine, Profile, RegistrationSetting, Sale
+from .supabase_admin import SupabaseAdminError, create_confirmed_user
 
 
 def make_user(role):
@@ -233,3 +235,130 @@ class PharmacyApiTests(APITestCase):
         )
         self.assertEqual(invalid.status_code, 400)
         self.assertFalse(Profile.objects.exists())
+
+    @patch("api.views.create_confirmed_user", return_value=str(uuid.uuid4()))
+    def test_registration_creates_confirmed_pharmacist_without_email_step(
+        self, create_user
+    ):
+        RegistrationSetting.objects.create(
+            id=1,
+            code_hash=make_password("staff-registration-code"),
+        )
+        response = self.client.post(
+            "/api/registration/register/",
+            {
+                "email": "new.pharmacist@example.com",
+                "password": "pharmacy-password",
+                "full_name": "New Pharmacist",
+                "code": "staff-registration-code",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["role"], "pharmacist")
+        self.assertEqual(
+            response.data["email"], "new.pharmacist@example.com"
+        )
+        create_user.assert_called_once_with(
+            "new.pharmacist@example.com",
+            "pharmacy-password",
+            "New Pharmacist",
+        )
+        self.assertTrue(
+            Profile.objects.filter(
+                email="new.pharmacist@example.com", role="pharmacist"
+            ).exists()
+        )
+
+    @patch("api.views.create_confirmed_user")
+    def test_registration_rejects_wrong_code_without_creating_auth_user(
+        self, create_user
+    ):
+        RegistrationSetting.objects.create(
+            id=1,
+            code_hash=make_password("staff-registration-code"),
+        )
+        response = self.client.post(
+            "/api/registration/register/",
+            {
+                "email": "new.pharmacist@example.com",
+                "password": "pharmacy-password",
+                "full_name": "New Pharmacist",
+                "code": "incorrect-code",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        create_user.assert_not_called()
+
+    @patch("api.supabase_admin._admin_request")
+    def test_existing_unconfirmed_auth_user_is_confirmed(self, admin_request):
+        admin_request.side_effect = [
+            SupabaseAdminError(422),
+            {
+                "users": [
+                    {
+                        "id": "pending-user-id",
+                        "email": "new.pharmacist@example.com",
+                        "email_confirmed_at": None,
+                    }
+                ]
+            },
+            {"id": "pending-user-id"},
+        ]
+
+        user_id = create_confirmed_user(
+            "new.pharmacist@example.com",
+            "pharmacy-password",
+            "New Pharmacist",
+        )
+
+        self.assertEqual(user_id, "pending-user-id")
+        update_call = admin_request.call_args_list[2]
+        self.assertEqual(update_call.args[0], "PUT")
+        self.assertEqual(update_call.args[1], "users/pending-user-id")
+        self.assertTrue(update_call.args[2]["email_confirm"])
+        self.assertEqual(
+            update_call.args[2]["password"], "pharmacy-password"
+        )
+
+    @patch("api.supabase_admin._admin_request")
+    def test_existing_confirmed_auth_user_is_not_taken_over(self, admin_request):
+        admin_request.side_effect = [
+            SupabaseAdminError(422),
+            {
+                "users": [
+                    {
+                        "id": "existing-user-id",
+                        "email": "new.pharmacist@example.com",
+                        "email_confirmed_at": "2026-01-01T00:00:00Z",
+                    }
+                ]
+            },
+        ]
+
+        with self.assertRaises(SupabaseAdminError) as error:
+            create_confirmed_user(
+                "new.pharmacist@example.com",
+                "pharmacy-password",
+                "New Pharmacist",
+            )
+
+        self.assertEqual(error.exception.status_code, 409)
+        self.assertEqual(admin_request.call_count, 2)
+
+    @patch("api.supabase_admin._admin_request", return_value={"id": "new-user-id"})
+    def test_new_supabase_user_is_created_with_email_already_confirmed(
+        self, admin_request
+    ):
+        user_id = create_confirmed_user(
+            "new.pharmacist@example.com",
+            "pharmacy-password",
+            "New Pharmacist",
+        )
+
+        self.assertEqual(user_id, "new-user-id")
+        payload = admin_request.call_args.args[2]
+        self.assertTrue(payload["email_confirm"])
+        self.assertEqual(payload["email"], "new.pharmacist@example.com")

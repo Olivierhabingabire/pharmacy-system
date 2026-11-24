@@ -109,36 +109,24 @@ export default function LoginPage() {
           );
         }
       } else {
-        const codeCheck = await fetch(`${API_URL}/registration/validate/`, {
+        const response = await fetch(`${API_URL}/registration/register/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: registrationCode }),
+          body: JSON.stringify({
+            email: email.trim(),
+            password,
+            full_name: fullName.trim(),
+            code: registrationCode,
+          }),
         });
-        if (!codeCheck.ok) throw new Error(await responseError(codeCheck));
+        if (!response.ok) throw new Error(await responseError(response));
 
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: { data: { full_name: fullName.trim() } },
-        });
-        if (signUpError) {
-          throw new Error(
-            "Could not create your account. Check the email and try again.",
-          );
-        }
-
-        if (data.session) {
-          await activatePharmacist(
-            data.session.access_token,
-            registrationCode,
-            fullName,
-          );
-        } else {
-          setNotice(
-            "Account created. Confirm your email, then sign in and enter the manager code to activate your pharmacist access.",
-          );
-          setMode("signIn");
-        }
+        setNotice(
+          "Your account is active. Sign in with the email and password you just registered.",
+        );
+        setPassword("");
+        setRegistrationCode("");
+        setMode("signIn");
       }
     } catch (submitError) {
       setError(

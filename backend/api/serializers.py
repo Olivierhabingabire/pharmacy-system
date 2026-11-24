@@ -48,3 +48,9 @@ class ActivatePharmacistSerializer(RegistrationCodeSerializer):
     full_name = serializers.CharField(
         max_length=200, trim_whitespace=True, required=False, allow_blank=True
     )
+
+
+class RegisterPharmacistSerializer(RegistrationCodeSerializer):
+    email = serializers.EmailField(max_length=254)
+    password = serializers.CharField(min_length=6, max_length=128, write_only=True)
+    full_name = serializers.CharField(max_length=200, trim_whitespace=True)

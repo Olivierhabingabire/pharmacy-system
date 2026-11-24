@@ -1,9 +1,10 @@
+import logging
 import uuid
 from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth.hashers import check_password, make_password
-from django.db import IntegrityError, transaction
+from django.db import DatabaseError, IntegrityError, transaction
 from django.db.models import Count, DecimalField, ExpressionWrapper, F, Sum
 from django.db.models.functions import TruncDate
 from django.utils import timezone
@@ -19,10 +20,20 @@ from .serializers import (
     ActivatePharmacistSerializer,
     MedicineSerializer,
     RegistrationCodeSerializer,
+    RegisterPharmacistSerializer,
     SaleRequestSerializer,
     SetRegistrationCodeSerializer,
 )
+from .supabase_admin import (
+    SupabaseAdminConfigurationError,
+    SupabaseAdminError,
+    SupabaseAdminUnavailable,
+    create_confirmed_user,
+    delete_user,
+)
 from .throttles import RegistrationIPThrottle
+
+logger = logging.getLogger(__name__)
 
 
 class MedicineList(ListCreateAPIView):
@@ -258,6 +269,95 @@ class ValidateRegistrationCode(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return Response({"valid": True})
+
+
+class RegisterPharmacist(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [RegistrationIPThrottle]
+    throttle_scope = "public_registration"
+
+    def post(self, request):
+        serializer = RegisterPharmacistSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        setting = RegistrationSetting.objects.filter(pk=1).first()
+        if not setting or not check_password(data["code"], setting.code_hash):
+            return Response(
+                {"detail": "The pharmacist registration code is not valid."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user_id = create_confirmed_user(
+                data["email"], data["password"], data["full_name"]
+            )
+        except SupabaseAdminConfigurationError:
+            return Response(
+                {"detail": "Pharmacist registration is not configured on the server."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except SupabaseAdminError as error:
+            if error.status_code == 409:
+                return Response(
+                    {"detail": "An account with this email already exists."},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            if error.status_code in (400, 422):
+                return Response(
+                    {"detail": "The identity provider rejected these account details."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            return Response(
+                {"detail": "Could not create the account with the identity provider."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        except SupabaseAdminUnavailable:
+            return Response(
+                {"detail": "The identity provider is temporarily unavailable."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        try:
+            with transaction.atomic():
+                profile = Profile.objects.create(
+                    id=user_id,
+                    role="pharmacist",
+                    email=data["email"],
+                    full_name=data["full_name"],
+                )
+        except IntegrityError:
+            try:
+                delete_user(user_id)
+            except (SupabaseAdminError, SupabaseAdminUnavailable):
+                logger.exception(
+                    "Could not roll back Supabase user after profile conflict."
+                )
+            return Response(
+                {"detail": "Could not activate this pharmacist account."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        except DatabaseError:
+            try:
+                delete_user(user_id)
+            except (SupabaseAdminError, SupabaseAdminUnavailable):
+                logger.exception(
+                    "Could not roll back Supabase user after profile database error."
+                )
+            return Response(
+                {"detail": "Could not save the pharmacist account. Try again."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return Response(
+            {
+                "id": str(profile.id),
+                "email": profile.email,
+                "full_name": profile.full_name,
+                "role": profile.role,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class ActivatePharmacist(APIView):
