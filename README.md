@@ -2,6 +2,40 @@
 
 A stock and sales system for a pharmacy counter. Pharmacists sell medicine; managers manage stock and read the sales report. The server refuses to sell expired or out-of-stock medicine, even when the screen is out of date.
 
+## Live demo
+
+| Part | Link |
+|---|---|
+| Frontend (Next.js on Vercel) | https://pharmacy-system-teal-alpha.vercel.app |
+| API (Django on Render) | https://pharmacy-api-2v30.onrender.com/api/ |
+
+**Note:** the API runs on a free plan and sleeps when idle. The first request
+after a pause can take up to 50 seconds. Open the API link once and wait
+before testing.
+
+### Try the API with curl
+
+Every endpoint needs a Supabase access token. Without one you get 401:
+
+    curl https://pharmacy-api-2v30.onrender.com/api/medicines/
+
+To get a token, run `python backend/get_token.py` locally (it asks for an
+email and password), then:
+
+    curl -H "Authorization: Bearer YOUR_TOKEN" https://pharmacy-api-2v30.onrender.com/api/medicines/
+
+### Deployment
+
+- Frontend: Vercel, root directory `frontend`.
+  Variables: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+- API: Render, root directory `backend`.
+  Build: `pip install -r requirements.txt && python manage.py collectstatic --noinput`.
+  Start: `gunicorn config.wsgi`.
+  Variables: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `FRONTEND_URL`,
+  `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SUPABASE_URL`.
+- Database and login: Supabase.
+
 ## Stack
 
 | Layer | Technology | Job |
