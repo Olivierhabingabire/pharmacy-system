@@ -30,7 +30,6 @@ const nav = [
   { href: "/staff/orders", label: "Customer orders", icon: ShoppingBag, staffOnly: true },
   { href: "/customer/catalog", label: "Browse medicines", icon: Pill, customerOnly: true },
   { href: "/customer/orders", label: "My orders", icon: ShoppingBag, customerOnly: true },
-  { href: "/profile", label: "My profile", icon: UserRound },
 ];
 
 const customerOnlyPaths = ["/customer/catalog", "/customer/orders"];
@@ -130,6 +129,57 @@ function Account({ user }: { user: AuthUser }) {
         {t("Sign out")}
       </button>
     </div>
+  );
+}
+
+function ProfileLink({
+  user,
+  pathname,
+  compact = false,
+}: {
+  user: AuthUser;
+  pathname: string;
+  compact?: boolean;
+}) {
+  const { t } = useLanguage();
+  const active = isActive(pathname, "/profile");
+  const displayName = user.full_name.trim() || user.email;
+  const label = `${t("My profile")}: ${displayName}`;
+
+  return (
+    <Link
+      href="/profile"
+      aria-label={label}
+      aria-current={active ? "page" : undefined}
+      title={label}
+      className={
+        compact
+          ? `grid h-9 w-9 shrink-0 place-items-center rounded-xl border transition ${
+              active
+                ? "border-[#f1c7dc] bg-[#fff1f7] text-[#c90062]"
+                : "border-rule bg-white text-slate-600 hover:border-[#f1c7dc] hover:bg-[#fffafd] hover:text-[#c90062]"
+            }`
+          : `flex max-w-64 items-center gap-2.5 rounded-xl border px-3 py-2 transition ${
+              active
+                ? "border-[#f1c7dc] bg-[#fff1f7]"
+                : "border-rule bg-white hover:border-[#f1c7dc] hover:bg-[#fffafd]"
+            }`
+      }
+    >
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#fde2f0] text-[#c90062]">
+        <UserRound className="h-4 w-4" aria-hidden="true" />
+      </span>
+      {!compact && (
+        <span className="min-w-0 text-left">
+          <span className="block truncate text-xs font-bold text-pine">
+            {displayName}
+          </span>
+          <span className="block truncate text-[10px] font-medium capitalize text-muted">
+            {user.role ? t(user.role) : ""}
+          </span>
+        </span>
+      )}
+    </Link>
   );
 }
 
@@ -302,9 +352,6 @@ function Shell({ children }: { children: React.ReactNode }) {
           {t("Workspace")}
         </p>
         <Nav pathname={pathname} isManager={isManager} isCustomer={isCustomer} />
-        <div className="px-3 pt-4">
-          <LanguageSelector />
-        </div>
         <div className="mt-auto px-1">
           <Account user={user} />
         </div>
@@ -314,7 +361,8 @@ function Shell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-rule bg-white px-4 py-3 text-pine shadow-sm md:hidden print:hidden">
         <Brand />
         <div className="flex items-center gap-2">
-          <LanguageSelector />
+          <LanguageSelector compact />
+          <ProfileLink user={user} pathname={pathname} compact />
           <button
             onClick={() => setOpen(true)}
             aria-label={t("Open menu")}
@@ -353,9 +401,6 @@ function Shell({ children }: { children: React.ReactNode }) {
               isCustomer={isCustomer}
               onNavigate={() => setOpen(false)}
             />
-            <div className="px-3 pt-4">
-              <LanguageSelector />
-            </div>
             <div className="mt-auto px-1">
               <Account user={user} />
             </div>
@@ -364,6 +409,10 @@ function Shell({ children }: { children: React.ReactNode }) {
       )}
 
       <div className="min-h-screen md:pl-60 print:pl-0">
+        <header className="sticky top-0 z-10 hidden items-center justify-end gap-3 border-b border-rule bg-white/95 px-5 py-3 text-pine shadow-sm backdrop-blur md:flex md:px-8 print:hidden">
+          <LanguageSelector />
+          <ProfileLink user={user} pathname={pathname} />
+        </header>
         {children}
         <CustomerSupportFooter />
       </div>

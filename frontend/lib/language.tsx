@@ -722,12 +722,14 @@ export function useLanguage() {
   return context;
 }
 
-export function LanguageSelector() {
+export function LanguageSelector({ compact = false }: { compact?: boolean }) {
   const { language, setLanguage, t } = useLanguage();
 
   return (
     <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600">
-      <span>{t("Language")}</span>
+      <span className={compact ? "hidden sm:inline" : undefined}>
+        {t("Language")}
+      </span>
       <select
         aria-label={t("Language")}
         value={language}
