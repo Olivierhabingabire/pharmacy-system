@@ -11,6 +11,10 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import {
+  CustomerSupportDetails,
+  SocialLinks,
+} from "@/components/CustomerSupport";
 
 const features = [
   {
@@ -230,20 +234,28 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-rule">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-6 sm:flex-row sm:px-8 lg:px-12">
-          <Link href="/" aria-label="Pharmacy Desk home">
-            <Brand />
-          </Link>
-          <p className="text-sm text-muted">
-            Stock and sales, made simpler for your pharmacy.
-          </p>
-          <Link
-            href={destination}
-            className="text-sm font-semibold text-ok transition hover:text-pine"
-          >
-            {actionLabel}
-          </Link>
+      <footer className="border-t border-rule bg-paper/60">
+        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-10 sm:px-8 md:grid-cols-[1.2fr_1fr_0.8fr] lg:px-12">
+          <div className="flex flex-col items-start gap-4">
+            <Link href="/" aria-label="Pharmacy Desk home">
+              <Brand />
+            </Link>
+            <p className="text-sm text-muted">
+              Stock and sales, made simpler for your pharmacy.
+            </p>
+            <Link
+              href={destination}
+              className="text-sm font-semibold text-ok transition hover:text-pine"
+            >
+              {actionLabel}
+            </Link>
+          </div>
+
+          <div>
+            <CustomerSupportDetails />
+          </div>
+
+          <SocialLinks />
         </div>
       </footer>
     </main>

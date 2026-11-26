@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { AuthProvider, useAuth, type AuthUser } from "@/lib/auth";
+import CustomerSupportFooter from "@/components/CustomerSupport";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, managerOnly: true },
@@ -110,11 +111,14 @@ function Account({ user }: { user: AuthUser }) {
 
 function Splash({ children }: { children?: React.ReactNode }) {
   return (
-    <div className="grid min-h-screen place-items-center px-6">
-      <div className="max-w-sm text-center">
-        {children ?? <p className="text-sm text-muted">Loading…</p>}
+    <>
+      <div className="grid min-h-screen place-items-center px-6">
+        <div className="max-w-sm text-center">
+          {children ?? <p className="text-sm text-muted">Loading…</p>}
+        </div>
       </div>
-    </div>
+      <CustomerSupportFooter />
+    </>
   );
 }
 
@@ -159,7 +163,15 @@ function Shell({ children }: { children: React.ReactNode }) {
     if (blocked) router.replace("/sales");
   }, [state.status, userRole, onLogin, onLanding, blocked, router]);
 
-  if (onLogin || onLanding) return <>{children}</>;
+  if (onLogin) {
+    return (
+      <>
+        {children}
+        <CustomerSupportFooter />
+      </>
+    );
+  }
+  if (onLanding) return <>{children}</>;
   if (state.status === "loading" || state.status === "signedOut" || blocked) {
     return <Splash />;
   }
@@ -260,7 +272,10 @@ function Shell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <div className="md:pl-60 print:pl-0">{children}</div>
+      <div className="md:pl-60 print:pl-0">
+        {children}
+        <CustomerSupportFooter />
+      </div>
     </div>
   );
 }
