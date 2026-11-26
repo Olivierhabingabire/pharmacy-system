@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { AuthProvider, useAuth, type AuthUser } from "@/lib/auth";
 import CustomerSupportFooter from "@/components/CustomerSupport";
+import CustomerAssistant from "@/components/CustomerAssistant";
 import {
   LanguageProvider,
   LanguageSelector,
@@ -264,15 +265,24 @@ function Shell({ children }: { children: React.ReactNode }) {
       <>
         {children}
         <CustomerSupportFooter />
+        {(!user || isCustomer) && <CustomerAssistant />}
       </>
     );
   }
-  if (onLanding) return <>{children}</>;
+  if (onLanding) {
+    return (
+      <>
+        {children}
+        {(!user || isCustomer) && <CustomerAssistant />}
+      </>
+    );
+  }
   if (onCustomerRegister && !user) {
     return (
       <>
         {children}
         <CustomerSupportFooter />
+        <CustomerAssistant />
       </>
     );
   }
@@ -430,6 +440,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         {children}
+        {isCustomer && <CustomerAssistant />}
         <CustomerSupportFooter />
       </div>
     </div>

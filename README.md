@@ -44,7 +44,9 @@ The tests use a temporary in-memory database, so your Supabase data is never tou
   Start: `gunicorn config.wsgi`.
   Variables: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `FRONTEND_URL`,
   `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SUPABASE_URL`,
-  `SUPABASE_SERVICE_ROLE_KEY` (server-side only; never expose it to the frontend).
+  `SUPABASE_SERVICE_ROLE_KEY` (server-side only; never expose it to the frontend),
+  `GEMINI_API_KEY` (server-side only; never expose it to the frontend), and optional
+  `GEMINI_MODEL`.
 - Database and login: Supabase.
 
 ## Stack
@@ -90,6 +92,8 @@ Managers set a shared pharmacist registration code in **Staff access**. A new ph
 The registration code is stored as a password hash and can be changed by a manager at any time. Changing it only affects future registrations. To update an existing database for pharmacist access management and profile phone numbers, run the current `database/registration.sql` in the Supabase SQL Editor; it adds any missing profile columns safely.
 
 Customers can create an account from **Order as a customer** on the landing page or the customer link on the sign-in screen; no staff code is needed. Supabase email confirmation applies according to the project's Auth settings. Customers can see available medicine and current prices, then submit requests for pharmacy pickup. Requests do not reserve stock or count as sales. A pharmacist must review each request, check any prescription requirements, and approve it before stock is reserved. The sale is recorded only when the pharmacist marks the order collected. Customers and staff can cancel pending or approved requests; cancelling an approved request releases its reserved stock.
+
+Customers can also use the **Help** assistant on public customer pages and in the customer portal. It answers basic Pharmacy Desk questions about accounts, medicine browsing, pickup requests, and orders. It cannot provide medical advice or access a customer's account, orders, or live stock. Customer questions are classified by the backend; only a predefined help topic, the selected language, and public help information are sent to Gemini. Chat history is not stored. Do not enter personal, order, payment, or health details. Configure `GEMINI_API_KEY` on the backend only; `GEMINI_MODEL` is optional and defaults to `gemini-2.5-flash`. Without a key, the assistant is unavailable and directs customers to the Pharmacy Desk support contacts.
 
 For an existing database, run the current `database/registration.sql` to add the customer role and order tables before deploying the customer portal. On new databases, `database/schema.sql` includes the same tables. The backend remains the only database client; the customer portal does not access Supabase tables directly.
 

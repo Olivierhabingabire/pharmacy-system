@@ -9,6 +9,7 @@ from rest_framework.test import APITestCase
 from unittest.mock import patch
 
 from .auth import SupabaseAuthentication, SupabaseUser
+from .customer_assistant import AssistantConfigurationError
 from .models import (
     CustomerOrder,
     Medicine,
@@ -682,3 +683,103 @@ class PharmacyApiTests(APITestCase):
 
         self.assertIsNone(untrusted_user.role)
         self.assertFalse(Profile.objects.filter(id=privileged_id).exists())
+
+
+class CustomerAssistantTests(APITestCase):
+    @patch(
+        "api.views.generate_gemini_answer",
+        return_value="Pharmacy Desk helps customers.",
+    )
+    def test_assistant_answers_basic_product_information(self, generate_answer):
+        response = self.client.post(
+            "/api/customer/assistant/",
+            {"message": "What is Pharmacy Desk?", "language": "en"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        generate_answer.assert_called_once_with("about_pharmacy_desk", "en")
+
+    @patch("api.views.generate_gemini_answer", return_value="Open My orders.")
+    def test_public_assistant_sends_only_a_topic_to_gemini(self, generate_answer):
+        response = self.client.post(
+            "/api/customer/assistant/",
+            {
+                "message": "How can I track my order? My email is private@example.com.",
+                "language": "en",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["reply"], "Open My orders.")
+        generate_answer.assert_called_once_with("track_customer_order", "en")
+
+    @patch("api.views.generate_gemini_answer")
+    def test_health_questions_are_redirected_without_calling_gemini(
+        self, generate_answer
+    ):
+        response = self.client.post(
+            "/api/customer/assistant/",
+            {
+                "message": "What medicine should I take for a fever?",
+                "language": "en",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("pharmacist", response.data["reply"])
+        generate_answer.assert_not_called()
+
+    @patch("api.views.generate_gemini_answer", return_value="Open My profile.")
+    def test_customer_can_use_assistant(self, generate_answer):
+        self.client.force_authenticate(user=make_user("customer"))
+        response = self.client.post(
+            "/api/customer/assistant/",
+            {"message": "How do I update my profile?", "language": "en"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        generate_answer.assert_called_once_with("update_profile", "en")
+
+    def test_staff_cannot_use_customer_assistant(self):
+        self.client.force_authenticate(user=make_user("pharmacist"))
+        response = self.client.post(
+            "/api/customer/assistant/",
+            {"message": "How do I track my order?", "language": "en"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_assistant_rejects_oversized_messages_and_unknown_languages(self):
+        oversized = self.client.post(
+            "/api/customer/assistant/",
+            {"message": "x" * 501, "language": "en"},
+            format="json",
+        )
+        unknown_language = self.client.post(
+            "/api/customer/assistant/",
+            {"message": "How do I track my order?", "language": "de"},
+            format="json",
+        )
+
+        self.assertEqual(oversized.status_code, 400)
+        self.assertEqual(unknown_language.status_code, 400)
+
+    @patch(
+        "api.views.generate_gemini_answer",
+        side_effect=AssistantConfigurationError,
+    )
+    def test_missing_gemini_configuration_is_reported(self, generate_answer):
+        response = self.client.post(
+            "/api/customer/assistant/",
+            {"message": "How can I track an order?", "language": "en"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("not configured", response.data["detail"])
+        generate_answer.assert_called_once_with("track_customer_order", "en")

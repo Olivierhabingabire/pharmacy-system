@@ -29,6 +29,18 @@ class IsAccountUser(HasRole):
     allowed_roles = ("customer", "pharmacist", "manager")
 
 
+class CustomerAssistantAccess(BasePermission):
+    """Allow public visitors and customers, but keep staff-only accounts out."""
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(
+            not user
+            or not user.is_authenticated
+            or user.role == "customer"
+        )
+
+
 class ManagerCanWrite(BasePermission):
     """Staff may read; only managers may create, change or delete."""
 

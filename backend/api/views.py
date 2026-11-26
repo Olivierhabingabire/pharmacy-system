@@ -12,8 +12,18 @@ from rest_framework import status
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from .customer_assistant import (
+    AssistantConfigurationError,
+    AssistantProviderError,
+    classify_customer_question,
+    generate_gemini_answer,
+    health_reply,
+    is_health_question,
+    out_of_scope_reply,
+)
 from .models import (
     CustomerOrder,
     CustomerOrderItem,
@@ -22,7 +32,14 @@ from .models import (
     RegistrationSetting,
     Sale,
 )
-from .permissions import IsAccountUser, IsCustomer, IsManager, IsStaff, ManagerCanWrite
+from .permissions import (
+    CustomerAssistantAccess,
+    IsAccountUser,
+    IsCustomer,
+    IsManager,
+    IsStaff,
+    ManagerCanWrite,
+)
 from .serializers import (
     ActivatePharmacistSerializer,
     CustomerOrderCreateSerializer,
@@ -226,6 +243,66 @@ class Analytics(APIView):
             }
         )
     
+
+class CustomerAssistant(APIView):
+    permission_classes = [CustomerAssistantAccess]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "assistant_chat"
+
+    def post(self, request):
+        if not isinstance(request.data, dict):
+            return Response(
+                {"detail": "Send a message and language."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        message = request.data.get("message")
+        language = request.data.get("language")
+        if not isinstance(message, str) or not 1 <= len(message.strip()) <= 500:
+            return Response(
+                {"detail": "Message must be between 1 and 500 characters."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not isinstance(language, str) or language not in {"en", "rw", "fr"}:
+            return Response(
+                {"detail": "Choose English, Kinyarwanda, or French."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        topic = classify_customer_question(message.strip())
+        if topic is None:
+            reply = (
+                health_reply(language)
+                if is_health_question(message.strip())
+                else out_of_scope_reply(language)
+            )
+            return Response({"reply": reply})
+
+        try:
+            # Never send the customer's message or chat history to Gemini.
+            reply = generate_gemini_answer(topic, language)
+        except AssistantConfigurationError:
+            return Response(
+                {
+                    "detail": (
+                        "The customer assistant is not configured. Please contact "
+                        "Pharmacy Desk support."
+                    )
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except AssistantProviderError:
+            return Response(
+                {
+                    "detail": (
+                        "The assistant is temporarily unavailable. Please contact "
+                        "Pharmacy Desk support."
+                    )
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        return Response({"reply": reply})
+
 
 class Me(APIView):
     """Who is calling, as proven by the token, and what role they have."""

@@ -80,6 +80,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "public_registration": "10/min",
         "pharmacist_activation": "10/min",
+        "assistant_chat": "10/min",
     },
     "UNAUTHENTICATED_USER": None,
 }
