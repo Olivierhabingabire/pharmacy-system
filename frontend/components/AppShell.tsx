@@ -110,17 +110,11 @@ function Nav({
   );
 }
 
-function Account({ user }: { user: AuthUser }) {
+function Account() {
   const { signOut } = useAuth();
   const { t } = useLanguage();
   return (
     <div className="border-t border-rule px-2 pt-4">
-      <p className="truncate text-sm font-semibold text-pine" title={user.email}>
-        {user.email}
-      </p>
-      <p className="mt-1 inline-flex rounded-full bg-[#fde2f0] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#c90062]">
-        {user.role ? t(user.role[0].toUpperCase() + user.role.slice(1)) : ""}
-      </p>
       <button
         onClick={signOut}
         className="mt-3 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-slate-600 transition hover:bg-[#fff1f7] hover:text-[#c90062]"
@@ -353,7 +347,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         </p>
         <Nav pathname={pathname} isManager={isManager} isCustomer={isCustomer} />
         <div className="mt-auto px-1">
-          <Account user={user} />
+          <Account />
         </div>
       </aside>
 
@@ -402,7 +396,7 @@ function Shell({ children }: { children: React.ReactNode }) {
               onNavigate={() => setOpen(false)}
             />
             <div className="mt-auto px-1">
-              <Account user={user} />
+              <Account />
             </div>
           </aside>
         </div>
