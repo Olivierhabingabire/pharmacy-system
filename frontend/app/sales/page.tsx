@@ -5,6 +5,7 @@ import { Check, Minus, Plus, Printer, Search, X } from "lucide-react";
 import { API_URL, authFetch, type Medicine } from "@/lib/api";
 import { money } from "@/lib/format";
 import { medicineStatus } from "@/lib/status";
+import { useLanguage } from "@/lib/language";
 
 type Receipt = {
   receipt_id: string;
@@ -32,6 +33,7 @@ function isSellable(m: Medicine) {
 }
 
 export default function SalesPage() {
+  const { t } = useLanguage();
   const [catalog, setCatalog] = useState<Catalog>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [search, setSearch] = useState("");
@@ -58,11 +60,11 @@ export default function SalesPage() {
           status: "error",
           message: error.message.startsWith("The server")
             ? error.message
-            : "Could not reach the server. Is Django running on port 8000?",
+            : t("Could not reach the server. Is Django running on port 8000?"),
         });
       });
     return () => controller.abort();
-  }, [attempt]);
+  }, [attempt, t]);
 
   const medicines = catalog.status === "ready" ? catalog.medicines : [];
   const byId = new Map(medicines.map((m) => [m.id, m]));
@@ -118,15 +120,15 @@ export default function SalesPage() {
           detail?: string;
           errors?: Refusal[];
         };
-        setProblem(body.detail ?? "The sale could not be processed.");
+        setProblem(t(body.detail ?? "The sale could not be processed."));
         setRefusals(body.errors ?? []);
       } else if (response.status === 404) {
-        setProblem("A medicine in the cart no longer exists. Reload the page.");
+        setProblem(t("A medicine in the cart no longer exists. Reload the page."));
       } else {
         setProblem(`The server answered ${response.status}.`);
       }
     } catch {
-      setProblem("Could not reach the server. Is Django running on port 8000?");
+      setProblem(t("Could not reach the server. Is Django running on port 8000?"));
     } finally {
       setSubmitting(false);
     }
@@ -145,13 +147,13 @@ export default function SalesPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-8 pb-28 md:px-8 lg:pb-8">
-      <h1 className="text-2xl font-bold tracking-tight text-pine">New sale</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-pine">{t("New sale")}</h1>
       <p className="mt-1 text-sm text-muted">
-        Search a medicine and press Enter to add it, or use the Add buttons.
+        {t("Search a medicine and press Enter to add it, or use the Add buttons.")}
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem]">
-        <section aria-label="Medicines" className="min-w-0">
+        <section aria-label={t("Medicines")} className="min-w-0">
           <div className="relative">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
@@ -170,14 +172,14 @@ export default function SalesPage() {
                   setSearch("");
                 }
               }}
-              placeholder="Search by name"
-              aria-label="Search medicines"
+              placeholder={t("Search by name")}
+              aria-label={t("Search medicines")}
               className="w-full rounded-xl border border-rule bg-surface py-3 pl-9 pr-3 text-sm placeholder:text-muted focus:border-cross focus:outline-none focus:ring-2 focus:ring-cross/20"
             />
           </div>
 
           {catalog.status === "loading" && (
-            <div className="mt-4 space-y-2" aria-busy="true" aria-label="Loading">
+            <div className="mt-4 space-y-2" aria-busy="true" aria-label={t("Loading…")}>
               {[0, 1, 2, 3, 4, 5].map((i) => (
                 <div
                   key={i}
@@ -197,7 +199,7 @@ export default function SalesPage() {
                 }}
                 className="mt-3 rounded-md bg-red px-3 py-1.5 font-medium text-white"
               >
-                Try again
+                {t("Try again")}
               </button>
             </div>
           )}
@@ -206,7 +208,7 @@ export default function SalesPage() {
             <ul className="mt-4 divide-y divide-rule overflow-hidden rounded-2xl border border-rule bg-surface shadow-sm lg:max-h-[calc(100vh-13rem)] lg:overflow-y-auto">
               {shown.length === 0 && (
                 <li className="p-6 text-center text-sm text-muted">
-                  No medicine matches “{search}”.
+                  {t("No medicine matches your search.")}
                 </li>
               )}
               {shown.map((m) => {
@@ -225,12 +227,12 @@ export default function SalesPage() {
                           {money(m.price)} RWF
                         </span>
                         {" · "}
-                        <span className="tabular-nums">{m.stock}</span> in stock
+                        <span className="tabular-nums">{m.stock}</span> {t("in stock")}
                         {status.label !== "OK" && (
                           <span
                             className={`ml-2 whitespace-nowrap rounded px-1.5 py-0.5 font-medium ${status.style}`}
                           >
-                            {status.label}
+                            {t(status.label)}
                           </span>
                         )}
                       </p>
@@ -239,11 +241,11 @@ export default function SalesPage() {
                       <button
                         onClick={() => addOne(m)}
                         disabled={inCart >= m.stock}
-                        aria-label={`Add ${m.name}`}
+                        aria-label={`${t("Add")} ${m.name}`}
                         className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#f1b1d0] px-3 py-1.5 text-sm font-semibold text-[#c90062] transition hover:border-[#e90074] hover:bg-[#e90074] hover:text-white disabled:opacity-40 disabled:hover:border-rule disabled:hover:bg-transparent disabled:hover:text-ink"
                       >
                         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                        {inCart > 0 ? `Add (${inCart})` : "Add"}
+                        {inCart > 0 ? `${t("Add")} (${inCart})` : t("Add")}
                       </button>
                     ) : (
                       <span className="shrink-0 text-xs text-muted">
@@ -257,19 +259,19 @@ export default function SalesPage() {
           )}
         </section>
 
-        <aside id="receipt" aria-label="Cart" className="lg:sticky lg:top-6 lg:self-start">
+        <aside id="receipt" aria-label={t("Cart")} className="lg:sticky lg:top-6 lg:self-start">
           <Paper>
             <p className="text-center text-sm font-medium tracking-wide">
               PHARMACY DESK
             </p>
-            <p className="mt-1 text-center text-xs text-muted">Current sale</p>
+            <p className="mt-1 text-center text-xs text-muted">{t("Current sale")}</p>
             <Rule />
 
             {lines.length === 0 ? (
               <p className="py-6 text-center text-xs text-muted">
-                No items yet.
+                {t("No items yet.")}
                 <br />
-                Add a medicine to start.
+                {t("Add a medicine to start.")}
               </p>
             ) : (
               <ul className="text-sm">
@@ -286,7 +288,7 @@ export default function SalesPage() {
                     <div className="mt-1 flex items-center gap-2 text-xs text-muted">
                       <button
                         onClick={() => setQty(medicine, qty - 1)}
-                        aria-label={`One less ${medicine.name}`}
+                        aria-label={`${t("One less")} ${medicine.name}`}
                         className="grid h-6 w-6 place-items-center rounded border border-rule text-ink hover:bg-paper"
                       >
                         <Minus className="h-3 w-3" aria-hidden="true" />
@@ -297,7 +299,7 @@ export default function SalesPage() {
                       <button
                         onClick={() => setQty(medicine, qty + 1)}
                         disabled={qty >= medicine.stock}
-                        aria-label={`One more ${medicine.name}`}
+                        aria-label={`${t("One more")} ${medicine.name}`}
                         className="grid h-6 w-6 place-items-center rounded border border-rule text-ink hover:bg-paper disabled:opacity-40"
                       >
                         <Plus className="h-3 w-3" aria-hidden="true" />
@@ -307,7 +309,7 @@ export default function SalesPage() {
                       </span>
                       <button
                         onClick={() => setQty(medicine, 0)}
-                        aria-label={`Remove ${medicine.name}`}
+                        aria-label={`${t("Remove")} ${medicine.name}`}
                         className="ml-auto text-muted hover:text-red"
                       >
                         <X className="h-4 w-4" aria-hidden="true" />
@@ -321,7 +323,7 @@ export default function SalesPage() {
             <Rule />
             <div className="flex items-baseline justify-between">
               <span className="text-xs text-muted">
-                {itemCount} {itemCount === 1 ? "item" : "items"}
+                {itemCount}                 {t(itemCount === 1 ? "item" : "items")}
               </span>
               <span className="text-xl font-medium tabular-nums">
                 {money(runningTotal)}{" "}
@@ -329,7 +331,7 @@ export default function SalesPage() {
               </span>
             </div>
             <p className="mt-2 pb-5 text-[11px] leading-snug text-muted">
-              The server recalculates the final total from the database prices.
+              {t("The server recalculates the final total from the database prices.")}
             </p>
           </Paper>
 
@@ -356,7 +358,7 @@ export default function SalesPage() {
             disabled={submitting || lines.length === 0}
             className="mt-4 w-full rounded-xl bg-[#e90074] px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-pink-200 transition hover:bg-[#c90062] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {submitting ? "Processing…" : "Complete sale"}
+            {submitting ? t("Processing…") : t("Complete sale")}
           </button>
         </aside>
       </div>
@@ -367,10 +369,10 @@ export default function SalesPage() {
           className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between bg-[#e90074] px-5 py-4 text-white shadow-[0_-8px_24px_rgba(201,0,98,0.18)] lg:hidden"
         >
           <span className="text-sm">
-            {itemCount} {itemCount === 1 ? "item" : "items"}
+            {itemCount}             {t(itemCount === 1 ? "item" : "items")}
           </span>
           <span className="font-medium tabular-nums">
-            {money(runningTotal)} RWF · View cart
+            {money(runningTotal)} RWF · {t("View cart")}
           </span>
         </a>
       )}
@@ -400,7 +402,8 @@ function FinishedReceipt({
   receipt: Receipt;
   onNewSale: () => void;
 }) {
-  const when = new Date(receipt.sold_at).toLocaleString("en-GB", {
+  const { t, language } = useLanguage();
+  const when = new Date(receipt.sold_at).toLocaleString(language === "fr" ? "fr-FR" : language === "rw" ? "rw-RW" : "en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -415,10 +418,10 @@ function FinishedReceipt({
           <Check className="h-5 w-5" aria-hidden="true" />
         </span>
         <h1 className="mt-3 text-2xl font-semibold tracking-tight">
-          Sale recorded
+          {t("Sale recorded")}
         </h1>
         <p className="mt-1 text-sm text-muted">
-          Stock has been updated. Print the receipt or start the next sale.
+          {t("Stock has been updated. Print the receipt or start the next sale.")}
         </p>
       </div>
 
@@ -450,14 +453,14 @@ function FinishedReceipt({
           </ul>
           <Rule />
           <div className="flex items-baseline justify-between">
-            <span className="text-sm">TOTAL</span>
+            <span className="text-sm">{t("TOTAL")}</span>
             <span className="text-xl font-medium tabular-nums">
               {money(receipt.total)}{" "}
               <span className="text-sm text-muted">RWF</span>
             </span>
           </div>
           <p className="pb-5 pt-4 text-center text-xs text-muted">
-            Thank you
+            {t("Thank you")}
           </p>
         </Paper>
       </div>
@@ -467,14 +470,14 @@ function FinishedReceipt({
           onClick={onNewSale}
           className="flex-1 rounded-xl bg-[#e90074] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#c90062]"
         >
-          New sale
+          {t("New sale")}
         </button>
         <button
           onClick={() => window.print()}
           className="inline-flex items-center gap-2 rounded-md border border-rule bg-surface px-4 py-2.5 text-sm font-medium"
         >
           <Printer className="h-4 w-4" aria-hidden="true" />
-          Print
+          {t("Print")}
         </button>
       </div>
     </main>

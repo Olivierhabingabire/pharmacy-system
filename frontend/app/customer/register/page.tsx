@@ -12,9 +12,11 @@ import {
   UserRound,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { LanguageSelector, useLanguage } from "@/lib/language";
 
 export default function CustomerRegistrationPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -30,11 +32,11 @@ export default function CustomerRegistrationPage() {
     setProblem(null);
     setNotice(null);
     if (password.length < 8) {
-      setProblem("Use a password with at least 8 characters.");
+      setProblem(t("Use a password with at least 8 characters."));
       return;
     }
     if (password !== confirmPassword) {
-      setProblem("The passwords do not match.");
+      setProblem(t("The passwords do not match."));
       return;
     }
 
@@ -55,7 +57,7 @@ export default function CustomerRegistrationPage() {
       if (error) {
         throw new Error(
           error.message.includes("already registered")
-            ? "An account with this email already exists. Sign in instead."
+            ? t("An account with this email already exists. Sign in instead.")
             : error.message,
         );
       }
@@ -63,14 +65,14 @@ export default function CustomerRegistrationPage() {
         router.replace("/customer/catalog");
       } else {
         setNotice(
-          "Account created. Check your email to confirm your address, then sign in to browse medicines.",
+          t("Account created. Check your email to confirm your address, then sign in to browse medicines."),
         );
         setPassword("");
         setConfirmPassword("");
       }
     } catch (error) {
       setProblem(
-        error instanceof Error ? error.message : "Could not create your account.",
+        error instanceof Error ? t(error.message) : t("Could not create your account."),
       );
     } finally {
       setSubmitting(false);
@@ -80,32 +82,34 @@ export default function CustomerRegistrationPage() {
   return (
     <main className="min-h-[70vh] bg-gradient-to-br from-[#fff5fa] via-[#fffafd] to-[#ffe8f4] px-4 py-10 sm:px-6 sm:py-14">
       <div className="mx-auto max-w-lg">
+        <div className="mb-4 flex justify-end">
+          <LanguageSelector />
+        </div>
         <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#bd005d] hover:text-[#e90074]"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Back to Pharmacy Desk
+          {t("Back to Pharmacy Desk")}
         </Link>
 
         <section className="mt-5 rounded-3xl border border-[#f4d0e1] bg-white p-6 shadow-[0_20px_60px_-30px_rgba(181,16,93,0.3)] sm:p-8">
           <div className="mb-6">
             <p className="text-xs font-bold tracking-[0.16em] text-[#c90062]">
-              CUSTOMER ACCOUNT
+              {t("CUSTOMER ACCOUNT")}
             </p>
             <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#142039]">
-              Create your account
+              {t("Create your account")}
             </h1>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Browse available medicines, see current prices, and send a request
-              for pharmacist review. No access code is needed.
+              {t("Browse available medicines, see current prices, and send a request for pharmacist review. No access code is needed.")}
             </p>
           </div>
 
           <form onSubmit={submit} className="grid gap-4">
             <Field
               id="customer-name"
-              label="Full name"
+              label={t("Full name")}
               icon={<UserRound className="h-4 w-4" aria-hidden="true" />}
               type="text"
               autoComplete="name"
@@ -116,7 +120,7 @@ export default function CustomerRegistrationPage() {
             />
             <Field
               id="customer-email"
-              label="Email address"
+              label={t("Email address")}
               icon={<Mail className="h-4 w-4" aria-hidden="true" />}
               type="email"
               autoComplete="email"
@@ -127,7 +131,7 @@ export default function CustomerRegistrationPage() {
             />
             <Field
               id="customer-phone"
-              label="Phone number (optional)"
+              label={t("Phone number (optional)")}
               icon={<Phone className="h-4 w-4" aria-hidden="true" />}
               type="tel"
               autoComplete="tel"
@@ -138,7 +142,7 @@ export default function CustomerRegistrationPage() {
             />
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="grid gap-1.5 text-sm font-semibold text-[#17213a]">
-                Password
+                {t("Password")}
                 <input
                   type="password"
                   autoComplete="new-password"
@@ -150,7 +154,7 @@ export default function CustomerRegistrationPage() {
                 />
               </label>
               <label className="grid gap-1.5 text-sm font-semibold text-[#17213a]">
-                Confirm password
+                {t("Confirm password")}
                 <input
                   type="password"
                   autoComplete="new-password"
@@ -186,23 +190,22 @@ export default function CustomerRegistrationPage() {
               disabled={submitting}
               className="mt-1 inline-flex items-center justify-center gap-2 rounded-xl bg-[#e90074] px-4 py-3 text-sm font-bold text-white shadow-sm shadow-pink-200 transition hover:bg-[#c90062] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {submitting ? "Creating account…" : "Create customer account"}
+              {submitting ? t("Creating account…") : t("Create customer account")}
               {!submitting && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
             </button>
           </form>
 
           <p className="mt-5 border-t border-[#f2dce7] pt-5 text-center text-sm text-slate-600">
-            Already registered?{" "}
+            {t("Already registered?")}{" "}
             <Link
               href="/login"
               className="font-semibold text-[#c90062] hover:underline"
             >
-              Sign in
+              {t("Sign in")}
             </Link>
           </p>
           <p className="mt-4 text-center text-xs leading-5 text-slate-500">
-            Orders are requests only. A pharmacist must review them before
-            medicines are reserved or dispensed.
+            {t("Orders are requests only. A pharmacist must review them before medicines are reserved or dispensed.")}
           </p>
         </section>
       </div>

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, ShoppingBag } from "lucide-react";
 import { API_URL, authFetch, type CustomerMedicine } from "@/lib/api";
 import { money } from "@/lib/format";
+import { useLanguage } from "@/lib/language";
 
 type CatalogState =
   | { status: "loading" }
@@ -18,6 +19,7 @@ async function responseError(response: Response) {
 }
 
 export default function CustomerCatalogPage() {
+  const { t } = useLanguage();
   const [catalog, setCatalog] = useState<CatalogState>({ status: "loading" });
   const [search, setSearch] = useState("");
   const [quantities, setQuantities] = useState<Record<number, number>>({});
@@ -79,10 +81,10 @@ export default function CustomerCatalogPage() {
       if (!response.ok) throw new Error(await responseError(response));
       setQuantities({});
       setNote("");
-      setNotice("Your request was sent. A pharmacist will review it shortly.");
+      setNotice(t("Your request was sent. A pharmacist will review it shortly."));
     } catch (error) {
       setProblem(
-        error instanceof Error ? error.message : "Could not submit your request.",
+        error instanceof Error ? t(error.message) : t("Could not submit your request."),
       );
     } finally {
       setSubmitting(false);
@@ -94,14 +96,13 @@ export default function CustomerCatalogPage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold tracking-[0.16em] text-[#c90062]">
-            CUSTOMER PORTAL
+            {t("CUSTOMER PORTAL")}
           </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-pine">
-            Browse medicines
+            {t("Browse medicines")}
           </h1>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">
-            View current prices and request medicines for pickup. Stock is not
-            reserved until a pharmacist reviews and approves your request.
+            {t("View current prices and request medicines for pickup. Stock is not reserved until a pharmacist reviews and approves your request.")}
           </p>
         </div>
       </header>
@@ -116,14 +117,14 @@ export default function CustomerCatalogPage() {
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search medicines"
-              aria-label="Search medicines"
+              placeholder={t("Search medicines")}
+              aria-label={t("Search medicines")}
               className="w-full rounded-xl border border-rule bg-white py-2.5 pl-9 pr-3 text-sm focus:border-cross focus:outline-none focus:ring-2 focus:ring-cross/20"
             />
           </div>
 
           {catalog.status === "loading" && (
-            <p className="mt-6 text-sm text-muted">Loading available medicines…</p>
+            <p className="mt-6 text-sm text-muted">{t("Loading available medicines…")}</p>
           )}
           {catalog.status === "error" && (
             <div className="mt-6 rounded-xl border border-red/30 bg-red-bg p-4 text-sm text-red">
@@ -135,7 +136,7 @@ export default function CustomerCatalogPage() {
                 }}
                 className="mt-3 font-semibold underline"
               >
-                Try again
+                {t("Try again")}
               </button>
             </div>
           )}
@@ -153,12 +154,12 @@ export default function CustomerCatalogPage() {
                           {medicine.name}
                         </p>
                         <p className="mt-1 text-sm text-muted">
-                          {money(medicine.price)} RWF · Available
+                          {money(medicine.price)} RWF · {t("Available")}
                         </p>
                       </div>
                       <label className="flex items-center gap-2 text-sm text-muted">
                         <span className="sr-only">Quantity for {medicine.name}</span>
-                        Qty
+                        {t("Qty")}
                         <input
                           type="number"
                           min={0}
@@ -185,8 +186,8 @@ export default function CustomerCatalogPage() {
               ) : (
                 <p className="p-8 text-center text-sm text-muted">
                   {catalog.medicines.length
-                    ? "No available medicines match your search."
-                    : "There are no medicines currently available to request."}
+                    ? t("No available medicines match your search.")
+                    : t("There are no medicines currently available to request.")}
                 </p>
               )}
             </div>
@@ -196,7 +197,7 @@ export default function CustomerCatalogPage() {
         <aside className="rounded-2xl border border-[#f2c5da] bg-white p-5 shadow-sm">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5 text-[#c90062]" aria-hidden="true" />
-            <h2 className="font-bold text-pine">Your request</h2>
+            <h2 className="font-bold text-pine">{t("Your request")}</h2>
           </div>
           {cartItems.length ? (
             <>
@@ -217,15 +218,15 @@ export default function CustomerCatalogPage() {
               </ul>
               <div className="mt-4 border-t border-rule pt-3">
                 <div className="flex justify-between font-bold text-pine">
-                  <span>Estimated total</span>
+                  <span>{t("Estimated total")}</span>
                   <span>{money(total)} RWF</span>
                 </div>
                 <p className="mt-1 text-xs leading-5 text-muted">
-                  Final price is confirmed by the pharmacist.
+                  {t("Final price is confirmed by the pharmacist.")}
                 </p>
               </div>
               <label className="mt-4 block text-sm font-semibold text-pine">
-                Note for the pharmacist (optional)
+                {t("Note for the pharmacist (optional)")}
                 <textarea
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
@@ -249,17 +250,16 @@ export default function CustomerCatalogPage() {
                 disabled={submitting}
                 className="mt-4 w-full rounded-xl bg-[#e90074] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#c90062] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {submitting ? "Sending request…" : "Request for pickup"}
+                {submitting ? t("Sending request…") : t("Request for pickup")}
               </button>
             </>
           ) : (
             <p className="mt-3 text-sm leading-6 text-muted">
-              Set the quantity beside any medicine to add it to your request.
+              {t("Set the quantity beside any medicine to add it to your request.")}
             </p>
           )}
           <p className="mt-4 text-xs leading-5 text-muted">
-            This is a request, not a confirmed sale. A pharmacist must review
-            the order and any prescription requirements.
+            {t("This is a request, not a confirmed sale. A pharmacist must review the order and any prescription requirements.")}
           </p>
         </aside>
       </div>

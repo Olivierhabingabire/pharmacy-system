@@ -16,6 +16,11 @@ import {
 } from "lucide-react";
 import { AuthProvider, useAuth, type AuthUser } from "@/lib/auth";
 import CustomerSupportFooter from "@/components/CustomerSupport";
+import {
+  LanguageProvider,
+  LanguageSelector,
+  useLanguage,
+} from "@/lib/language";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, managerOnly: true },
@@ -70,8 +75,9 @@ function Nav({
   isCustomer: boolean;
   onNavigate?: () => void;
 }) {
+  const { t } = useLanguage();
   return (
-    <nav aria-label="Main">
+    <nav aria-label={t("Main")}>
       <ul className="space-y-1">
         {nav
           .filter(
@@ -95,7 +101,7 @@ function Nav({
                   }`}
                 >
                   <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
-                  {label}
+                  {t(label)}
                 </Link>
               </li>
             );
@@ -107,31 +113,33 @@ function Nav({
 
 function Account({ user }: { user: AuthUser }) {
   const { signOut } = useAuth();
+  const { t } = useLanguage();
   return (
     <div className="border-t border-rule px-2 pt-4">
       <p className="truncate text-sm font-semibold text-pine" title={user.email}>
         {user.email}
       </p>
       <p className="mt-1 inline-flex rounded-full bg-[#fde2f0] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#c90062]">
-        {user.role}
+        {user.role ? t(user.role[0].toUpperCase() + user.role.slice(1)) : ""}
       </p>
       <button
         onClick={signOut}
         className="mt-3 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-slate-600 transition hover:bg-[#fff1f7] hover:text-[#c90062]"
       >
         <LogOut className="h-4 w-4" aria-hidden="true" />
-        Sign out
+        {t("Sign out")}
       </button>
     </div>
   );
 }
 
 function Splash({ children }: { children?: React.ReactNode }) {
+  const { t } = useLanguage();
   return (
     <>
       <div className="grid min-h-screen place-items-center bg-[#fffafd] px-6">
         <div className="max-w-sm text-center">
-          {children ?? <p className="text-sm text-muted">Loading…</p>}
+          {children ?? <p className="text-sm text-muted">{t("Loading…")}</p>}
         </div>
       </div>
       <CustomerSupportFooter />
@@ -141,13 +149,16 @@ function Splash({ children }: { children?: React.ReactNode }) {
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <Shell>{children}</Shell>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <Shell>{children}</Shell>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
+  const { t } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
   const { state, signOut } = useAuth();
@@ -227,19 +238,19 @@ function Shell({ children }: { children: React.ReactNode }) {
   if (state.status === "error") {
     return (
       <Splash>
-        <p className="text-sm text-red">{state.message}</p>
+        <p className="text-sm text-red">{t(state.message)}</p>
         <div className="mt-4 flex justify-center gap-3">
           <button
             onClick={() => window.location.reload()}
             className="rounded-xl bg-[#e90074] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#c90062]"
           >
-            Try again
+            {t("Try again")}
           </button>
           <button
             onClick={signOut}
             className="rounded-md border border-rule bg-surface px-4 py-2 text-sm"
           >
-            Sign out
+            {t("Sign out")}
           </button>
         </div>
       </Splash>
@@ -249,16 +260,15 @@ function Shell({ children }: { children: React.ReactNode }) {
   if (user && !user.is_active) {
     return (
       <Splash>
-        <h1 className="text-lg font-semibold">Staff access deactivated</h1>
+        <h1 className="text-lg font-semibold">{t("Staff access deactivated")}</h1>
         <p className="mt-2 text-sm text-muted">
-          This account can no longer access the pharmacy workspace. Contact a
-          manager if you think this is a mistake.
+          {t("This account can no longer access the Pharmacy Desk workspace. Contact a manager if you think this is a mistake.")}
         </p>
         <button
           onClick={signOut}
           className="mt-4 rounded-xl border border-rule bg-surface px-4 py-2.5 text-sm font-semibold text-pine transition hover:border-[#e90074]/40 hover:text-[#c90062]"
         >
-          Sign out
+          {t("Sign out")}
         </button>
       </Splash>
     );
@@ -267,16 +277,15 @@ function Shell({ children }: { children: React.ReactNode }) {
   if (!user || user.role === null) {
     return (
       <Splash>
-        <h1 className="text-lg font-semibold">No role assigned yet</h1>
+        <h1 className="text-lg font-semibold">{t("No role assigned yet")}</h1>
         <p className="mt-2 text-sm text-muted">
-          You are signed in as {user?.email}, but your account has no role. Ask
-          a manager to add you to the pharmacy team.
+          {t("You are signed in as {email}, but your account has no role. Ask a manager to add you to the pharmacy team.").replace("{email}", user?.email ?? "")}
         </p>
         <button
           onClick={signOut}
           className="mt-4 rounded-md border border-rule bg-surface px-4 py-2 text-sm"
         >
-          Sign out
+          {t("Sign out")}
         </button>
       </Splash>
     );
@@ -290,9 +299,12 @@ function Shell({ children }: { children: React.ReactNode }) {
           <Brand />
         </div>
         <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-          Workspace
+          {t("Workspace")}
         </p>
         <Nav pathname={pathname} isManager={isManager} isCustomer={isCustomer} />
+        <div className="px-3 pt-4">
+          <LanguageSelector />
+        </div>
         <div className="mt-auto px-1">
           <Account user={user} />
         </div>
@@ -301,13 +313,16 @@ function Shell({ children }: { children: React.ReactNode }) {
       {/* Mobile top bar */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-rule bg-white px-4 py-3 text-pine shadow-sm md:hidden print:hidden">
         <Brand />
-        <button
-          onClick={() => setOpen(true)}
-          aria-label="Open menu"
-          className="rounded-lg p-2 text-[#c90062] hover:bg-[#fff1f7]"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <LanguageSelector />
+          <button
+            onClick={() => setOpen(true)}
+            aria-label={t("Open menu")}
+            className="rounded-lg p-2 text-[#c90062] hover:bg-[#fff1f7]"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        </div>
       </header>
 
       {/* Mobile drawer */}
@@ -316,21 +331,21 @@ function Shell({ children }: { children: React.ReactNode }) {
           <button
             className="absolute inset-0 bg-black/50"
             onClick={() => setOpen(false)}
-            aria-label="Close menu"
+            aria-label={t("Close menu")}
           />
           <aside className="absolute inset-y-0 left-0 flex w-64 flex-col border-r border-rule bg-white px-3 py-5 text-pine shadow-xl">
             <div className="flex items-center justify-between px-3 pb-7">
               <Brand />
               <button
                 onClick={() => setOpen(false)}
-                aria-label="Close menu"
+                aria-label={t("Close menu")}
                 className="rounded-lg p-2 text-[#c90062] hover:bg-[#fff1f7]"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-              Workspace
+              {t("Workspace")}
             </p>
             <Nav
               pathname={pathname}
@@ -338,6 +353,9 @@ function Shell({ children }: { children: React.ReactNode }) {
               isCustomer={isCustomer}
               onNavigate={() => setOpen(false)}
             />
+            <div className="px-3 pt-4">
+              <LanguageSelector />
+            </div>
             <div className="mt-auto px-1">
               <Account user={user} />
             </div>

@@ -10,6 +10,7 @@ import { money } from "@/lib/format";
 import { daysFromToday, medicineStatus, shortDate } from "@/lib/status";
 import { useAuth } from "@/lib/auth";
 import MedicineForm from "./MedicineForm";
+import { useLanguage } from "@/lib/language";
 
 const PAGE_SIZE = 25;
 
@@ -55,6 +56,7 @@ export default function MedicinesPage() {
 }
 
 function MedicinesView() {
+  const { t } = useLanguage();
   const router = useRouter();
   const { state: auth } = useAuth();
   const canEdit = auth.status === "signedIn" && auth.user.role === "manager";
@@ -111,11 +113,11 @@ function MedicinesView() {
     <main className="mx-auto max-w-6xl px-5 py-8 md:px-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Medicines</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("Medicines")}</h1>
           <p className="mt-1 text-sm text-muted">
             {state.status === "ready"
-              ? `${medicines.length} medicines in stock records`
-              : "Stock, prices and expiry dates"}
+              ? `${medicines.length} ${t("medicines in stock records")}`
+              : t("Stock, prices and expiry dates")}
           </p>
         </div>
         {canEdit && (
@@ -124,13 +126,13 @@ function MedicinesView() {
             className="inline-flex items-center gap-2 rounded-xl bg-[#e90074] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-pink-200 transition hover:bg-[#c90062]"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
-            Add medicine
+            {t("Add medicine")}
           </button>
         )}
       </header>
 
       {state.status === "loading" && (
-        <div className="mt-8 space-y-3" aria-busy="true" aria-label="Loading">
+        <div className="mt-8 space-y-3" aria-busy="true" aria-label={t("Loading…")}>
           {[0, 1, 2, 3, 4].map((i) => (
             <div
               key={i}
@@ -150,14 +152,14 @@ function MedicinesView() {
             }}
             className="mt-3 rounded-md bg-red px-3 py-1.5 font-medium text-white"
           >
-            Try again
+            {t("Try again")}
           </button>
         </div>
       )}
 
       {state.status === "ready" && (
         <>
-          <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="Filter">
+          <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label={t("Filter")}>
             {FILTERS.map((f) => {
               const count = medicines.filter(f.test).length;
               const active = f.key === filterKey;
@@ -172,7 +174,7 @@ function MedicinesView() {
                       : "border-rule bg-surface hover:border-[#e90074]/40 hover:bg-[#fff5fa]"
                   }`}
                 >
-                  {f.label}{" "}
+                  {t(f.label)}{" "}
                   <span
                     className={`tabular-nums ${active ? "text-white/70" : "text-muted"}`}
                   >
@@ -194,8 +196,8 @@ function MedicinesView() {
                 setSearch(e.target.value);
                 setPage(0);
               }}
-              placeholder="Search by name"
-              aria-label="Search by name"
+              placeholder={t("Search by name")}
+              aria-label={t("Search by name")}
               className="w-full rounded-xl border border-rule bg-surface py-2.5 pl-9 pr-3 text-sm placeholder:text-muted focus:border-cross focus:outline-none focus:ring-2 focus:ring-cross/20"
             />
           </div>
@@ -203,12 +205,12 @@ function MedicinesView() {
           {medicines.length === 0 ? (
             <p className="mt-6 rounded-lg border border-dashed border-rule p-8 text-center text-sm text-muted">
               {canEdit
-                ? "No medicines yet. Use “Add medicine” to create the first one."
-                : "No medicines have been added yet."}
+                ? t("No medicines yet. Use “Add medicine” to create the first one.")
+                : t("No medicines have been added yet.")}
             </p>
           ) : rows.length === 0 ? (
             <div className="mt-6 rounded-lg border border-dashed border-rule p-8 text-center text-sm text-muted">
-              <p>No medicine matches these filters.</p>
+              <p>{t("No medicine matches these filters.")}</p>
               <button
                 onClick={() => {
                   setSearch("");
@@ -216,7 +218,7 @@ function MedicinesView() {
                 }}
                 className="mt-2 font-medium text-ok hover:underline"
               >
-                Clear filters
+                {t("Clear filters")}
               </button>
             </div>
           ) : (
@@ -225,13 +227,13 @@ function MedicinesView() {
                 <table className="w-full text-left text-sm">
                   <thead className="border-b border-rule text-muted">
                     <tr>
-                      <th className="px-4 py-3 font-medium">Name</th>
+                      <th className="px-4 py-3 font-medium">{t("Name")}</th>
                       <th className="hidden px-4 py-3 text-right font-medium sm:table-cell">
-                        Price (RWF)
+                        {t("Price (RWF)")}
                       </th>
-                      <th className="px-4 py-3 text-right font-medium">Stock</th>
-                      <th className="hidden px-4 py-3 font-medium sm:table-cell">Expires</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
+                      <th className="px-4 py-3 text-right font-medium">{t("Stock")}</th>
+                      <th className="hidden px-4 py-3 font-medium sm:table-cell">{t("Expires")}</th>
+                      <th className="px-4 py-3 font-medium">{t("Status")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-rule">
@@ -269,7 +271,7 @@ function MedicinesView() {
                               <span
                                 className={`whitespace-nowrap rounded px-2 py-0.5 text-xs font-medium ${b.style}`}
                               >
-                                {b.label}
+                                {t(b.label)}
                               </span>
                             )}
                           </td>
@@ -291,14 +293,14 @@ function MedicinesView() {
                     disabled={current === 0}
                     className="rounded-md border border-rule bg-surface px-3 py-1 text-ink disabled:opacity-40"
                   >
-                    Previous
+                    {t("Previous")}
                   </button>
                   <button
                     onClick={() => setPage(current + 1)}
                     disabled={current >= pageCount - 1}
                     className="rounded-md border border-rule bg-surface px-3 py-1 text-ink disabled:opacity-40"
                   >
-                    Next
+                    {t("Next")}
                   </button>
                 </div>
               </div>
@@ -308,10 +310,10 @@ function MedicinesView() {
       )}
 
       {canEdit && (
-        <SlideOver open={adding} title="Add a medicine" onClose={closePanel}>
+        <SlideOver open={adding}         title={t("Add a medicine")} onClose={closePanel}>
           <MedicineForm
-            submitLabel="Add medicine"
-            successText="Medicine added."
+            submitLabel={t("Add medicine")}
+            successText={t("Medicine added.")}
             method="POST"
             url={`${API_URL}/medicines/`}
             successStatus={201}

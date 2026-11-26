@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { API_URL, authFetch } from "@/lib/api";
+import { useLanguage } from "@/lib/language";
 
 type Pharmacist = {
   id: string;
@@ -33,6 +34,7 @@ async function errorMessage(response: Response) {
 }
 
 export default function StaffAccessPage() {
+  const { t } = useLanguage();
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [code, setCode] = useState("");
@@ -68,11 +70,11 @@ export default function StaffAccessPage() {
           status: "error",
           message: error.message.startsWith("The server")
             ? error.message
-            : "Could not reach the server. Is Django running?",
+            : t("Could not reach the server. Is Django running?"),
         });
       });
     return () => controller.abort();
-  }, [attempt]);
+  }, [attempt, t]);
 
   async function saveCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -80,11 +82,11 @@ export default function StaffAccessPage() {
     setProblem(null);
     setMessage(null);
     if (code.length < 12) {
-      setProblem("Use a code with at least 12 characters.");
+      setProblem(t("Use a code with at least 12 characters."));
       return;
     }
     if (code !== confirmation) {
-      setProblem("The codes do not match.");
+      setProblem(t("The codes do not match."));
       return;
     }
 
@@ -104,10 +106,10 @@ export default function StaffAccessPage() {
           ? { ...current, configured: true }
           : current,
       );
-      setMessage("Registration code saved. Share it only with pharmacists you authorize.");
+      setMessage(t("Registration code saved. Share it only with pharmacists you authorize."));
     } catch (error) {
       setProblem(
-        error instanceof Error ? error.message : "Could not save the code.",
+        error instanceof Error ? t(error.message) : t("Could not save the code."),
       );
     } finally {
       setSaving(false);
@@ -118,9 +120,9 @@ export default function StaffAccessPage() {
     if (!shareCode) return;
     try {
       await navigator.clipboard.writeText(shareCode);
-      setMessage("Code copied. Share it only with pharmacists you authorize.");
+      setMessage(t("Code copied. Share it only with pharmacists you authorize."));
     } catch {
-      setProblem("Could not copy the code. Select and copy it manually.");
+      setProblem(t("Could not copy the code. Select and copy it manually."));
     }
   }
 
@@ -129,7 +131,7 @@ export default function StaffAccessPage() {
     if (
       !isActive &&
       !window.confirm(
-        `Deactivate ${pharmacist.full_name || pharmacist.email}? They will lose access, but their sales history will be kept.`,
+        t("Deactivate {name}? They will lose access, but their sales history will be kept.").replace("{name}", pharmacist.full_name || pharmacist.email),
       )
     ) {
       return;
@@ -161,14 +163,14 @@ export default function StaffAccessPage() {
       );
       setRosterNotice(
         isActive
-          ? `${pharmacist.full_name || pharmacist.email} can access the workspace again.`
-          : `${pharmacist.full_name || pharmacist.email} has been deactivated. Sales history is preserved.`,
+          ? t("{name} can access the workspace again.").replace("{name}", pharmacist.full_name || pharmacist.email)
+          : t("{name} has been deactivated. Sales history is preserved.").replace("{name}", pharmacist.full_name || pharmacist.email),
       );
     } catch (error) {
       setRosterProblem(
         error instanceof Error
           ? error.message
-          : "Could not update pharmacist access.",
+          : t("Could not update pharmacist access."),
       );
     } finally {
       setUpdatingId(null);
@@ -178,13 +180,12 @@ export default function StaffAccessPage() {
   return (
     <main className="mx-auto max-w-5xl px-5 py-8 md:px-8">
       <header>
-        <p className="text-xs font-bold tracking-[0.16em] text-[#c90062]">MANAGER SETTINGS</p>
+        <p className="text-xs font-bold tracking-[0.16em] text-[#c90062]">{t("MANAGER SETTINGS")}</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-          Staff access
+          {t("Staff access")}
         </h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">
-          Set the shared code pharmacists need to register. You can replace it
-          whenever your team changes.
+          {t("Set the shared code pharmacists need to register. You can replace it whenever your team changes.")}
         </p>
       </header>
 
@@ -194,7 +195,7 @@ export default function StaffAccessPage() {
 
       {state.status === "error" && (
         <div className="mt-8 rounded-lg border border-red/30 bg-red-bg p-4 text-sm text-red">
-          <p>{state.message}</p>
+          <p>{t(state.message)}</p>
           <button
             onClick={() => {
               setState({ status: "loading" });
@@ -202,7 +203,7 @@ export default function StaffAccessPage() {
             }}
             className="mt-3 rounded-md bg-red px-3 py-1.5 font-medium text-white"
           >
-            Try again
+            {t("Try again")}
           </button>
         </div>
       )}
@@ -215,11 +216,11 @@ export default function StaffAccessPage() {
                 <KeyRound className="h-5 w-5 text-[#d50068]" aria-hidden="true" />
               </span>
               <div>
-                <h2 className="font-semibold">Pharmacist registration code</h2>
+                <h2 className="font-semibold">{t("Pharmacist registration code")}</h2>
                 <p className="mt-1 text-sm leading-6 text-muted">
                   {state.configured
-                        ? "A code is set. For your security, the current code cannot be viewed."
-                    : "No code is set yet. Pharmacists cannot register until you create one."}
+                        ? t("A code is set. For your security, the current code cannot be viewed.")
+                    : t("No code is set yet. Pharmacists cannot register until you create one.")}
                 </p>
               </div>
             </div>
@@ -227,7 +228,7 @@ export default function StaffAccessPage() {
             <form onSubmit={saveCode} className="mt-6 grid gap-4">
               <div>
                 <label htmlFor="registration-code" className="text-sm font-medium">
-                  {state.configured ? "New shared code" : "Set shared code"}
+                  {state.configured ? t("New shared code") : t("Set shared code")}
                 </label>
                 <input
                   id="registration-code"
@@ -243,7 +244,7 @@ export default function StaffAccessPage() {
               </div>
               <div>
                 <label htmlFor="registration-code-confirm" className="text-sm font-medium">
-                  Confirm shared code
+                  {t("Confirm shared code")}
                 </label>
                 <input
                   id="registration-code-confirm"
@@ -262,7 +263,7 @@ export default function StaffAccessPage() {
                   className="flex items-start gap-2 rounded-lg bg-red-bg px-3 py-2.5 text-sm text-red"
                 >
                   <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                  {problem}
+                  {t(problem)}
                 </p>
               )}
               {message && (
@@ -271,7 +272,7 @@ export default function StaffAccessPage() {
                   className="flex items-start gap-2 rounded-lg bg-ok-bg px-3 py-2.5 text-sm text-ok"
                 >
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                  {message}
+                  {t(message)}
                 </p>
               )}
               {shareCode && (
@@ -283,7 +284,7 @@ export default function StaffAccessPage() {
                     <button
                       type="button"
                       onClick={copyCode}
-                      aria-label="Copy registration code"
+                      aria-label={t("Copy registration code")}
                       className="rounded-md p-2 text-ok hover:bg-white/60"
                     >
                       <Copy className="h-4 w-4" aria-hidden="true" />
@@ -293,7 +294,7 @@ export default function StaffAccessPage() {
                       onClick={() => setShareCode(null)}
                       className="rounded-md px-2 py-1 text-xs font-medium text-ok hover:bg-white/60"
                     >
-                      Hide
+                      {t("Hide")}
                     </button>
                   </div>
                 </div>
@@ -310,15 +311,12 @@ export default function StaffAccessPage() {
                     aria-hidden="true"
                   />
                 )}
-                {saving ? "Saving code" : "Save registration code"}
+                {saving ? t("Saving code") : t("Save registration code")}
               </button>
             </form>
 
             <p className="mt-4 text-xs leading-5 text-muted">
-              Share the registration code and sign-in page with the pharmacist
-              you want to add. They can choose “Register with a manager code”
-              to create their account. The code is stored as a secure hash and
-              cannot be viewed again after this page is refreshed.
+              {t("Share the registration code and sign-in page with the pharmacist you want to add. They can choose “Register with a manager code” to create their account. The code is stored as a secure hash and cannot be viewed again after this page is refreshed.")}
             </p>
             {state.configured && (
               <Link
@@ -327,7 +325,7 @@ export default function StaffAccessPage() {
                 rel="noreferrer"
                 className="mt-4 inline-flex items-center gap-2 rounded-xl border border-[#f1b1d0] px-4 py-2.5 text-sm font-semibold text-[#c90062] transition hover:bg-[#fff1f7]"
               >
-                Open staff sign-in
+                {t("Open staff sign-in")}
                 <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             )}
@@ -340,9 +338,9 @@ export default function StaffAccessPage() {
                   <Users className="h-5 w-5 text-[#d50068]" aria-hidden="true" />
                 </span>
                 <div>
-                  <h2 className="font-semibold">Pharmacist roster</h2>
+                  <h2 className="font-semibold">{t("Pharmacist roster")}</h2>
                   <p className="mt-1 text-sm text-muted">
-                    Active and deactivated pharmacist accounts.
+                    {t("Active and deactivated pharmacist accounts.")}
                   </p>
                 </div>
               </div>
@@ -357,7 +355,7 @@ export default function StaffAccessPage() {
                 className="mt-4 flex items-start gap-2 rounded-lg bg-red-bg px-3 py-2.5 text-sm text-red"
               >
                 <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                {rosterProblem}
+                {t(rosterProblem)}
               </p>
             )}
             {rosterNotice && (
@@ -365,15 +363,13 @@ export default function StaffAccessPage() {
                 role="status"
                 className="mt-4 rounded-lg bg-ok-bg px-3 py-2.5 text-sm text-ok"
               >
-                {rosterNotice}
+                {t(rosterNotice)}
               </p>
             )}
 
             {state.pharmacists.length === 0 ? (
               <p className="mt-6 rounded-lg border border-dashed border-rule p-5 text-sm text-muted">
-                No pharmacist accounts have registered yet. Create a
-                registration code and share it with the staff member you want
-                to add.
+                {t("No pharmacist accounts have registered yet. Create a registration code and share it with the staff member you want to add.")}
               </p>
             ) : (
               <ul className="mt-5 divide-y divide-rule">
@@ -402,7 +398,7 @@ export default function StaffAccessPage() {
                           }`}
                           aria-hidden="true"
                         />
-                        {pharmacist.is_active ? "Active" : "Deactivated"}
+                        {pharmacist.is_active ? t("Active") : t("Deactivated")}
                       </span>
                     </div>
                     <button
@@ -416,10 +412,10 @@ export default function StaffAccessPage() {
                       }`}
                     >
                       {updatingId === pharmacist.id
-                        ? "Updating…"
+                        ? t("Updating…")
                         : pharmacist.is_active
-                          ? "Deactivate"
-                          : "Restore access"}
+                          ? t("Deactivate")
+                          : t("Restore access")}
                     </button>
                   </li>
                 ))}

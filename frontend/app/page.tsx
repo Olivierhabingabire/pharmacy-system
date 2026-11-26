@@ -19,6 +19,7 @@ import {
   CustomerSupportDetails,
   SocialLinks,
 } from "@/components/CustomerSupport";
+import { LanguageSelector, useLanguage } from "@/lib/language";
 
 const features = [
   {
@@ -48,6 +49,7 @@ const assurances = [
 ];
 
 function Brand() {
+  const { t } = useLanguage();
   return (
     <span className="flex items-center gap-2.5">
       <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#e90074] text-white shadow-md shadow-pink-200">
@@ -56,7 +58,7 @@ function Brand() {
       <span className="text-[15px] font-bold leading-tight tracking-tight text-[#13213a] sm:text-base">
         Pharmacy <span className="text-[#e90074]">Desk</span>
         <span className="mt-0.5 block text-[10px] font-medium tracking-wide text-slate-500">
-          STOCK. SALES. SIMPLIFIED.
+          {t("STOCK. SALES. SIMPLIFIED.")}
         </span>
       </span>
     </span>
@@ -64,6 +66,7 @@ function Brand() {
 }
 
 function PharmacistHero() {
+  const { t } = useLanguage();
   return (
     <figure className="relative mx-auto w-full max-w-[36rem] px-2 pb-8 sm:px-5">
       <div
@@ -73,7 +76,7 @@ function PharmacistHero() {
       <div className="relative aspect-[1.16/1] overflow-hidden rounded-[1.8rem] border-[5px] border-white bg-[#ffe7f3] shadow-[0_25px_70px_-25px_rgba(181,16,93,0.35)] sm:rounded-[2rem]">
         <Image
           src="/pharmacist-hero.jpg"
-          alt="A pharmacist in a white coat standing in a well-stocked pharmacy"
+          alt={t("A pharmacist in a white coat standing in a well-stocked pharmacy")}
           fill
           priority
           sizes="(max-width: 1024px) 90vw, 42vw"
@@ -86,10 +89,10 @@ function PharmacistHero() {
         <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3 sm:inset-x-6 sm:bottom-6">
           <div className="text-white">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75 sm:text-xs">
-              Your pharmacy, more connected
+              {t("Your pharmacy, more connected")}
             </p>
             <p className="mt-1 text-base font-semibold sm:text-xl">
-              Made for the people who care.
+              {t("Made for the people who care.")}
             </p>
           </div>
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-[#e90074] shadow-lg sm:h-12 sm:w-12">
@@ -114,6 +117,7 @@ function PharmacistHero() {
 
 export default function LandingPage() {
   const { state } = useAuth();
+  const { t } = useLanguage();
   const destination =
     state.status === "signedIn"
       ? state.user.role === "manager"
@@ -126,51 +130,52 @@ export default function LandingPage() {
       : "/login";
   const actionLabel =
     state.status !== "signedIn"
-      ? "Staff sign in"
+      ? t("Staff sign in")
       : state.user.role === null
-        ? "Activate account"
+        ? t("Activate account")
         : state.user.role === "customer"
-          ? "Browse medicines"
-        : "Open your workspace";
+          ? t("Browse medicines")
+          : t("Open your workspace");
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#fffafd] text-[#17213a]">
       <header className="relative z-10 border-b border-pink-100 bg-white/95 shadow-[0_2px_16px_rgba(70,20,50,0.04)] backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3.5 sm:px-8 lg:px-12">
-          <Link href="/" aria-label="Pharmacy Desk home">
+          <Link href="/" aria-label={t("Pharmacy Desk home")}>
             <Brand />
           </Link>
-          <nav className="flex items-center gap-1 sm:gap-5" aria-label="Main">
+          <nav className="flex items-center gap-1 sm:gap-5" aria-label={t("Main")}>
             <a
               href="#home"
               className="hidden items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold text-[#d50068] sm:inline-flex"
             >
-              Home
+              {t("Home")}
             </a>
             <a
               href="#about"
               className="hidden rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-pink-50 hover:text-[#d50068] md:inline-flex"
             >
-              About
+              {t("About")}
             </a>
             <a
               href="#features"
               className="hidden rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-pink-50 hover:text-[#d50068] sm:inline-flex"
             >
-              Services
+              {t("Services")}
             </a>
             <a
               href="#contact"
               className="hidden rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-pink-50 hover:text-[#d50068] lg:inline-flex"
             >
-              Contact
+              {t("Contact")}
             </a>
+            <LanguageSelector />
             <Link
               href={destination}
               className="ml-1 inline-flex items-center gap-2 rounded-full border border-[#f2a4cb] px-4 py-2 text-sm font-semibold text-[#c90062] transition hover:bg-[#fff0f7] sm:ml-3 sm:px-5"
             >
               <span className="hidden sm:inline">{actionLabel}</span>
-              <span className="sm:hidden">Sign in</span>
+              <span className="sm:hidden">{t("Sign in")}</span>
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </nav>
@@ -192,17 +197,15 @@ export default function LandingPage() {
         <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-5 pb-12 pt-10 sm:px-8 sm:pb-16 sm:pt-14 lg:grid-cols-[1fr_1.04fr] lg:gap-12 lg:px-12 lg:pb-16 lg:pt-14">
           <div className="relative z-10 max-w-xl">
             <p className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.15em] text-[#cf0065] sm:text-sm">
-              WELCOME TO PHARMACY DESK
+              {t("WELCOME TO PHARMACY DESK")}
               <span className="h-px w-9 bg-[#ec5b9f]" aria-hidden="true" />
             </p>
             <h1 className="mt-4 text-[2.65rem] font-extrabold leading-[1.03] tracking-[-0.055em] text-[#142039] sm:text-6xl lg:text-[4.35rem]">
-              A clearer view of{" "}
-              <span className="text-[#e90074]">your pharmacy.</span>
+              {t("A clearer view of")}{" "}
+              <span className="text-[#e90074]">{t("your pharmacy.")}</span>
             </h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
-              Manage medicine stock, make confident counter sales, and keep an
-              eye on your business—all in one practical workspace for your
-              pharmacy team.
+              {t("Manage medicine stock, make confident counter sales, and keep an eye on your business—all in one practical workspace for your pharmacy team.")}
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
@@ -219,7 +222,7 @@ export default function LandingPage() {
                 href="#features"
                 className="inline-flex items-center gap-2 rounded-full border border-[#f2a4cb] bg-white/70 px-5 py-3.5 text-sm font-semibold text-[#b9005a] transition hover:bg-white"
               >
-                Explore features
+                {t("Explore features")}
               </a>
               <Link
                 href={
@@ -229,7 +232,7 @@ export default function LandingPage() {
                 }
                 className="inline-flex items-center gap-2 rounded-full border border-[#f2a4cb] bg-white/70 px-5 py-3.5 text-sm font-semibold text-[#b9005a] transition hover:bg-white"
               >
-                Order as a customer
+                {t("Order as a customer")}
               </Link>
             </div>
             <div className="mt-7 flex flex-wrap gap-x-6 gap-y-2 border-t border-[#f3c5db] pt-5 text-xs font-medium text-slate-600 sm:text-sm">
@@ -238,7 +241,7 @@ export default function LandingPage() {
                   <span className="grid h-5 w-5 place-items-center rounded-full bg-[#fce0ee] text-[#ce0065]">
                     <Check className="h-3 w-3" aria-hidden="true" />
                   </span>
-                  {item}
+                  {t(item)}
                 </span>
               ))}
             </div>
@@ -261,7 +264,7 @@ export default function LandingPage() {
       </section>
 
       <section
-        aria-label="Pharmacy Desk benefits"
+        aria-label={t("Pharmacy Desk benefits")}
         className="relative z-[1] bg-[#e90074] text-white shadow-[0_8px_24px_rgba(201,0,98,0.2)]"
       >
         <div className="mx-auto grid max-w-6xl grid-cols-1 divide-y divide-white/25 px-5 sm:px-8 md:grid-cols-3 md:divide-x md:divide-y-0 lg:px-12">
@@ -272,8 +275,8 @@ export default function LandingPage() {
             >
               <Icon className="h-7 w-7 shrink-0" aria-hidden="true" />
               <div>
-                <p className="text-sm font-bold">{title}</p>
-                <p className="mt-0.5 text-xs text-white/80">{detail}</p>
+                <p className="text-sm font-bold">{t(title)}</p>
+                <p className="mt-0.5 text-xs text-white/80">{t(detail)}</p>
               </div>
             </div>
           ))}
@@ -291,12 +294,11 @@ export default function LandingPage() {
             <span className="h-px flex-1 bg-[#f3b2d1]" />
           </div>
           <h2 className="mt-3 text-3xl font-extrabold tracking-[-0.04em] text-[#142039] sm:text-4xl">
-            More time for what{" "}
-            <span className="text-[#e90074]">matters.</span>
+            {t("More time for")}{" "}
+            <span className="text-[#e90074]">{t("matters.")}</span>
           </h2>
           <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-            Pharmacy Desk brings everyday operations into one place, helping
-            your team stay organized and serve customers with confidence.
+            {t("Pharmacy Desk brings everyday operations into one place, helping your team stay organized and serve customers with confidence.")}
           </p>
         </div>
 
@@ -311,16 +313,16 @@ export default function LandingPage() {
               </span>
               <div>
                 <h3 className="text-base font-bold tracking-tight text-[#17213a]">
-                  {title}
+                  {t(title)}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {description}
+                  {t(description)}
                 </p>
                 <Link
                   href={destination}
                   className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#d50068] transition hover:text-[#a90053]"
                 >
-                  Open your workspace
+                  {t("Open your workspace")}
                   <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                 </Link>
               </div>
@@ -332,38 +334,37 @@ export default function LandingPage() {
       <footer id="contact" className="scroll-mt-16 border-t border-[#f4c9de] bg-white">
         <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:px-8 md:grid-cols-[1.1fr_1fr_0.8fr_0.8fr] lg:px-12">
           <div className="flex flex-col items-start gap-3">
-            <Link href="/" aria-label="Pharmacy Desk home">
+            <Link href="/" aria-label={t("Pharmacy Desk home")}>
               <Brand />
             </Link>
             <p className="max-w-xs text-sm leading-6 text-slate-600">
-              Practical tools for clearer stock management and smoother
-              pharmacy sales.
+              {t("Practical tools for clearer stock management and smoother pharmacy sales.")}
             </p>
           </div>
           <div>
             <CustomerSupportDetails />
           </div>
-          <nav aria-label="Footer quick links">
-            <h2 className="text-sm font-semibold text-[#17213a]">Quick links</h2>
+          <nav aria-label={t("Footer quick links")}>
+            <h2 className="text-sm font-semibold text-[#17213a]">{t("Quick links")}</h2>
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
               <li>
                 <a className="transition hover:text-[#d50068]" href="#home">
-                  Home
+                  {t("Home")}
                 </a>
               </li>
               <li>
                 <a className="transition hover:text-[#d50068]" href="#about">
-                  About Pharmacy Desk
+                  {t("About Pharmacy Desk")}
                 </a>
               </li>
               <li>
                 <a className="transition hover:text-[#d50068]" href="#features">
-                  Features
+                  {t("Features")}
                 </a>
               </li>
               <li>
                 <Link className="transition hover:text-[#d50068]" href={destination}>
-                  Staff sign in
+                  {t("Staff sign in")}
                 </Link>
               </li>
             </ul>
@@ -371,13 +372,13 @@ export default function LandingPage() {
           <SocialLinks />
         </div>
         <div className="bg-[#d9006b] px-5 py-3 text-center text-xs text-white sm:flex sm:items-center sm:justify-between sm:px-8 lg:px-12">
-          <p>© 2026 Pharmacy Desk. Built for pharmacy teams.</p>
+          <p>© 2026 Pharmacy Desk. {t("Built for pharmacy teams.")}</p>
           <a
             href="mailto:pharmacydesk@gmail.com"
             className="mt-1 inline-flex items-center justify-center gap-1.5 text-white/90 hover:text-white sm:mt-0"
           >
             <Mail className="h-3.5 w-3.5" aria-hidden="true" />
-            We’re here to help
+            {t("We’re here to help")}
           </a>
         </div>
       </footer>

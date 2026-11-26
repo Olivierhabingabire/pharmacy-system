@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
+import { useLanguage } from "@/lib/language";
 
 export default function SlideOver({
   open,
@@ -14,6 +15,7 @@ export default function SlideOver({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const { t } = useLanguage();
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export default function SlideOver({
   return (
     <div className="fixed inset-0 z-50">
       <button
-        aria-label="Close panel"
+        aria-label={t("Close panel")}
         className="absolute inset-0 bg-ink/40"
         onClick={onClose}
       />
@@ -51,7 +53,7 @@ export default function SlideOver({
           <h2 className="font-semibold text-pine">{title}</h2>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("Close")}
             className="rounded-lg p-2 text-[#c90062] hover:bg-[#fde2f0]"
           >
             <X className="h-5 w-5" />

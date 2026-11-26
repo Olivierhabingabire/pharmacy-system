@@ -9,6 +9,7 @@ import { money } from "@/lib/format";
 import { daysFromToday, medicineStatus, shortDate } from "@/lib/status";
 import { useAuth } from "@/lib/auth";
 import MedicineForm from "../MedicineForm";
+import { useLanguage } from "@/lib/language";
 
 type State =
   | { status: "loading" }
@@ -17,6 +18,7 @@ type State =
   | { status: "ready"; medicine: Medicine };
 
 export default function MedicineDetailPage() {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { state: auth } = useAuth();
@@ -91,11 +93,11 @@ export default function MedicineDetailPage() {
         className="inline-flex items-center gap-1 text-sm text-muted hover:text-ink"
       >
         <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-        Medicines
+        {t("Medicines")}
       </Link>
 
       {state.status === "loading" && (
-        <div className="mt-6 space-y-3" aria-busy="true" aria-label="Loading">
+        <div className="mt-6 space-y-3" aria-busy="true" aria-label={t("Loading…")}>
           <div className="h-8 w-64 rounded-md bg-rule motion-safe:animate-pulse" />
           <div className="h-20 rounded-lg bg-rule motion-safe:animate-pulse" />
         </div>
@@ -103,7 +105,7 @@ export default function MedicineDetailPage() {
 
       {state.status === "notfound" && (
         <p className="mt-6 rounded-lg border border-dashed border-rule p-8 text-center text-sm text-muted">
-          This medicine does not exist. It may have been deleted.
+          {t("This medicine does not exist. It may have been deleted.")}
         </p>
       )}
 
@@ -117,7 +119,7 @@ export default function MedicineDetailPage() {
             }}
             className="mt-3 rounded-md bg-red px-3 py-1.5 font-medium text-white"
           >
-            Try again
+            {t("Try again")}
           </button>
         </div>
       )}
@@ -129,12 +131,12 @@ export default function MedicineDetailPage() {
           {canEdit ? (
             <>
               <section className="mt-8 rounded-lg border border-rule bg-surface p-5">
-                <h2 className="font-semibold">Edit details</h2>
+                <h2 className="font-semibold">{t("Edit details")}</h2>
                 <div className="mt-4 max-w-md">
                   <MedicineForm
                     key={state.medicine.id}
-                    submitLabel="Save changes"
-                    successText="Changes saved."
+                    submitLabel={t("Save changes")}
+                    successText={t("Changes saved.")}
                     method="PATCH"
                     url={`${API_URL}/medicines/${id}/`}
                     successStatus={200}
@@ -151,36 +153,35 @@ export default function MedicineDetailPage() {
               </section>
 
               <section className="mt-6 rounded-lg border border-red/30 bg-surface p-5">
-                <h2 className="font-semibold">Delete this medicine</h2>
+                <h2 className="font-semibold">{t("Delete this medicine")}</h2>
                 <p className="mt-1 text-sm text-muted">
-                  A medicine that has been sold cannot be deleted. Set its stock to
-                  0 instead.
+                  {t("A medicine that has been sold cannot be deleted. Set its stock to 0 instead.")}
                 </p>
                 {!confirming ? (
                   <button
                     onClick={() => setConfirming(true)}
                     className="mt-4 rounded-md border border-red/40 px-4 py-2 text-sm font-medium text-red hover:bg-red-bg"
                   >
-                    Delete medicine
+                    {t("Delete medicine")}
                   </button>
                 ) : (
                   <div className="mt-4 flex flex-wrap items-center gap-3">
                     <span className="text-sm font-medium">
-                      Delete {state.medicine.name}?
+                      {t("Delete")} {state.medicine.name}?
                     </span>
                     <button
                       onClick={remove}
                       disabled={deleting}
                       className="rounded-md bg-red px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                     >
-                      {deleting ? "Deleting…" : "Yes, delete"}
+                      {deleting ? t("Deleting…") : t("Yes, delete")}
                     </button>
                     <button
                       onClick={() => setConfirming(false)}
                       disabled={deleting}
                       className="rounded-md border border-rule px-4 py-2 text-sm"
                     >
-                      Cancel
+                      {t("Cancel")}
                     </button>
                   </div>
                 )}
@@ -193,7 +194,7 @@ export default function MedicineDetailPage() {
             </>
           ) : (
             <p className="mt-8 rounded-lg border border-dashed border-rule p-5 text-sm text-muted">
-              Only managers can change or delete medicines.
+              {t("Only managers can change or delete medicines.")}
             </p>
           )}
         </>
@@ -203,14 +204,15 @@ export default function MedicineDetailPage() {
 }
 
 function Facts({ medicine }: { medicine: Medicine }) {
+  const { t } = useLanguage();
   const b = medicineStatus(medicine);
   const days = daysFromToday(medicine.expiry_date);
-  const shelfLabel = days < 0 ? "Expired" : "Time left";
+  const shelfLabel = days < 0 ? t("Expired") : t("Time left");
   const shelf =
     days < 0
       ? `${-days} ${-days === 1 ? "day" : "days"} ago`
       : days === 0
-        ? "Today"
+        ? t("Today")
         : `${days} ${days === 1 ? "day" : "days"}`;
 
   return (
@@ -220,15 +222,15 @@ function Facts({ medicine }: { medicine: Medicine }) {
           {medicine.name}
         </h1>
         <span className={`rounded px-2 py-0.5 text-xs font-medium ${b.style}`}>
-          {b.label}
+          {t(b.label)}
         </span>
       </div>
 
       <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-rule bg-rule sm:grid-cols-4">
-        <Fact label="Price" value={`${money(medicine.price)} RWF`} />
-        <Fact label="In stock" value={String(medicine.stock)} />
+        <Fact label={t("Price")} value={`${money(medicine.price)} RWF`} />
+        <Fact label={t("In stock")} value={String(medicine.stock)} />
         <Fact
-          label="Expires"
+          label={t("Expires")}
           value={`${shortDate(medicine.expiry_date)} ${medicine.expiry_date.slice(0, 4)}`}
         />
         <Fact label={shelfLabel} value={shelf} />

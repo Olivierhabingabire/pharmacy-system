@@ -4,13 +4,14 @@ import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { API_URL, authFetch, type PharmacyOrder } from "@/lib/api";
 import { money } from "@/lib/format";
+import { useLanguage } from "@/lib/language";
 
 type OrdersState =
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "ready"; orders: PharmacyOrder[] };
 
-const statusLabel: Record<PharmacyOrder["status"], string> = {
+const statusMessage: Record<PharmacyOrder["status"], string> = {
   submitted: "Awaiting pharmacist review",
   ready_for_pickup: "Ready for pickup",
   declined: "Not approved",
@@ -26,6 +27,7 @@ async function responseError(response: Response) {
 }
 
 export default function CustomerOrdersPage() {
+  const { t, language } = useLanguage();
   const [state, setState] = useState<OrdersState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [working, setWorking] = useState<string | null>(null);
@@ -62,7 +64,7 @@ export default function CustomerOrdersPage() {
       setState({ status: "ready", orders });
     } catch (error) {
       setProblem(
-        error instanceof Error ? error.message : "Could not cancel this order.",
+        error instanceof Error ? t(error.message) : t("Could not cancel this order."),
       );
     } finally {
       setWorking(null);
@@ -74,13 +76,13 @@ export default function CustomerOrdersPage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold tracking-[0.16em] text-[#c90062]">
-            CUSTOMER PORTAL
+            {t("CUSTOMER PORTAL")}
           </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-pine">
-            My orders
+            {t("My orders")}
           </h1>
           <p className="mt-1 text-sm text-muted">
-            Track requests and see when an approved order is ready for pickup.
+            {t("Track requests and see when an approved order is ready for pickup.")}
           </p>
         </div>
         <button
@@ -91,7 +93,7 @@ export default function CustomerOrdersPage() {
           className="inline-flex items-center gap-2 rounded-xl border border-rule bg-white px-3 py-2 text-sm font-semibold text-pine hover:bg-[#fff5fa]"
         >
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          Refresh
+          {t("Refresh")}
         </button>
       </header>
 
@@ -101,7 +103,7 @@ export default function CustomerOrdersPage() {
         </p>
       )}
       {state.status === "loading" && (
-        <p className="mt-8 text-sm text-muted">Loading your orders…</p>
+        <p className="mt-8 text-sm text-muted">{t("Loading your orders…")}</p>
       )}
       {state.status === "error" && (
         <div className="mt-6 rounded-xl border border-red/30 bg-red-bg p-4 text-sm text-red">
@@ -110,7 +112,7 @@ export default function CustomerOrdersPage() {
             onClick={() => setAttempt((value) => value + 1)}
             className="mt-3 font-semibold underline"
           >
-            Try again
+            {t("Try again")}
           </button>
         </div>
       )}
@@ -125,10 +127,10 @@ export default function CustomerOrdersPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                      Request {order.id.slice(0, 8)}
+                      {t("Request")} {order.id.slice(0, 8)}
                     </p>
                     <p className="mt-1 text-sm text-muted">
-                      {new Date(order.created_at).toLocaleString()}
+                      {new Date(order.created_at).toLocaleString(language === "fr" ? "fr-FR" : language === "rw" ? "rw-RW" : "en-GB")}
                     </p>
                   </div>
                   <span
@@ -140,7 +142,7 @@ export default function CustomerOrdersPage() {
                           : "bg-[#fde2f0] text-[#c90062]"
                     }`}
                   >
-                    {statusLabel[order.status]}
+                    {t(statusMessage[order.status])}
                   </span>
                 </div>
 
@@ -161,25 +163,24 @@ export default function CustomerOrdersPage() {
                 </ul>
 
                 <div className="mt-3 flex justify-between text-sm font-bold text-pine">
-                  <span>{order.status === "submitted" ? "Estimated total" : "Total"}</span>
+                  <span>{order.status === "submitted" ? t("Estimated total") : t("Total")}</span>
                   <span>{money(order.total)} RWF</span>
                 </div>
                 {order.customer_note && (
                   <p className="mt-3 text-sm text-muted">
-                    <span className="font-semibold text-pine">Your note:</span>{" "}
+                    <span className="font-semibold text-pine">{t("Your note:")}</span>{" "}
                     {order.customer_note}
                   </p>
                 )}
                 {order.staff_note && (
                   <p className="mt-2 rounded-lg bg-[#fff5fa] p-3 text-sm text-pine">
-                    <span className="font-semibold">Pharmacy:</span>{" "}
+                    <span className="font-semibold">{t("Pharmacy:")}</span>{" "}
                     {order.staff_note}
                   </p>
                 )}
                 {order.status === "ready_for_pickup" && (
                   <p className="mt-3 text-sm font-semibold text-emerald-700">
-                    Please collect this order at the pharmacy. Payment is handled
-                    at pickup.
+                    {t("Please collect this order at the pharmacy. Payment is handled at pickup.")}
                   </p>
                 )}
                 {["submitted", "ready_for_pickup"].includes(order.status) && (
@@ -188,7 +189,7 @@ export default function CustomerOrdersPage() {
                     disabled={working !== null}
                     className="mt-4 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                   >
-                    {working === order.id ? "Cancelling…" : "Cancel request"}
+                    {working === order.id ? t("Cancelling…") : t("Cancel request")}
                   </button>
                 )}
               </li>
@@ -196,7 +197,7 @@ export default function CustomerOrdersPage() {
           </ul>
         ) : (
           <p className="mt-6 rounded-2xl border border-dashed border-rule bg-white p-8 text-center text-sm text-muted">
-            You have no requests yet. Browse medicines to start an order.
+            {t("You have no requests yet. Browse medicines to start an order.")}
           </p>
         ))}
     </main>

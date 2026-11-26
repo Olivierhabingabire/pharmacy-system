@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { authFetch } from "@/lib/api";
+import { useLanguage } from "@/lib/language";
 
 type Values = {
   name: string;
@@ -40,6 +41,7 @@ export default function MedicineForm({
   resetOnSuccess: boolean;
   onSaved: () => void;
 }) {
+  const { t } = useLanguage();
   const [values, setValues] = useState<Values>(initial);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -68,9 +70,9 @@ export default function MedicineForm({
         onSaved();
       } else if (response.status === 400) {
         setErrors((await response.json()) as FieldErrors);
-        setMessage({ kind: "error", text: "Please fix the marked fields." });
+        setMessage({ kind: "error", text: t("Please fix the marked fields.") });
       } else if (response.status === 404) {
-        setMessage({ kind: "error", text: "This medicine no longer exists." });
+        setMessage({ kind: "error", text: t("This medicine no longer exists.") });
       } else {
         setMessage({
           kind: "error",
@@ -80,7 +82,7 @@ export default function MedicineForm({
     } catch {
       setMessage({
         kind: "error",
-        text: "Could not reach the server. Is Django running on port 8000?",
+        text: t("Could not reach the server. Is Django running on port 8000?"),
       });
     } finally {
       setSubmitting(false);
@@ -92,7 +94,7 @@ export default function MedicineForm({
       {fields.map((f) => (
         <div key={f.key}>
           <label htmlFor={`field-${f.key}`} className="text-sm font-medium">
-            {f.label}
+            {t(f.label)}
           </label>
           <input
             id={`field-${f.key}`}
@@ -122,7 +124,7 @@ export default function MedicineForm({
           disabled={submitting}
           className="rounded-xl bg-[#e90074] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#c90062] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting ? "Saving…" : submitLabel}
+          {submitting ? t("Saving…") : submitLabel}
         </button>
         {message && (
           <p

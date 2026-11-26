@@ -1,4 +1,5 @@
 import { Mail, MapPin, Phone } from "lucide-react";
+import { useLanguage } from "@/lib/language";
 
 const socialPlatforms = [
   { name: "WhatsApp", href: "https://wa.me/250790222835" },
@@ -73,9 +74,10 @@ function SocialIcon({
 }
 
 export function SocialLinks() {
+  const { t } = useLanguage();
   return (
-    <section aria-label="Social media">
-      <h2 className="text-sm font-semibold text-pine">Follow us</h2>
+    <section aria-label={t("Social media")}>
+      <h2 className="text-sm font-semibold text-pine">{t("Follow us")}</h2>
       <div className="mt-4 flex flex-wrap gap-2">
         {socialPlatforms.map(({ name, href }) => (
           <a
@@ -83,7 +85,11 @@ export function SocialLinks() {
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={`Open ${name}${name === "WhatsApp" ? " chat" : ""} in a new tab`}
+            aria-label={t(
+              name === "WhatsApp"
+                ? "Open {platform} chat in a new tab"
+                : "Open {platform} in a new tab",
+            ).replace("{platform}", name)}
             title={name}
             className="group inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cross focus-visible:outline-offset-2"
           >
@@ -96,16 +102,17 @@ export function SocialLinks() {
 }
 
 export function CustomerSupportDetails() {
+  const { t } = useLanguage();
   return (
     <section>
-      <h2 className="text-sm font-semibold text-pine">Customer support</h2>
+      <h2 className="text-sm font-semibold text-pine">{t("Customer support")}</h2>
       <p className="mt-1 text-sm text-muted">
-        Need help with Pharmacy Desk? Reach our support team.
+        {t("Need help with Pharmacy Desk? Reach our support team.")}
       </p>
       <address className="mt-4 flex flex-col items-start gap-3 text-sm not-italic text-muted">
         <span className="inline-flex items-center gap-2">
           <MapPin className="h-4 w-4 text-ok" aria-hidden="true" />
-          Kigali, Rwanda
+          {t("Kigali, Rwanda")}
         </span>
         <a
           href="mailto:pharmacydesk@gmail.com"

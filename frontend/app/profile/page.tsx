@@ -12,6 +12,7 @@ import {
 import { useAuth, type AuthUser } from "@/lib/auth";
 import { API_URL, authFetch } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
+import { useLanguage } from "@/lib/language";
 
 async function responseError(response: Response) {
   const body = (await response.json().catch(() => ({}))) as {
@@ -28,6 +29,7 @@ export default function ProfilePage() {
 }
 
 function ProfileForm({ user }: { user: AuthUser }) {
+  const { t } = useLanguage();
   const [fullName, setFullName] = useState(user.full_name);
   const [email, setEmail] = useState(user.email);
   const [phone, setPhone] = useState(user.phone);
@@ -43,7 +45,7 @@ function ProfileForm({ user }: { user: AuthUser }) {
     const normalizedEmail = email.trim();
     const normalizedPhone = phone.trim();
     if (!normalizedName) {
-      setProblem("Enter your full name.");
+      setProblem(t("Enter your full name."));
       return;
     }
 
@@ -68,8 +70,8 @@ function ProfileForm({ user }: { user: AuthUser }) {
           email: normalizedEmail,
         });
         if (error) {
-          setNotice("Your name and phone number were saved.");
-          setProblem(`Email was not updated: ${error.message}`);
+          setNotice(t("Your name and phone number were saved."));
+          setProblem(`${t("Email was not updated:")} ${error.message}`);
           return;
         }
 
@@ -77,16 +79,16 @@ function ProfileForm({ user }: { user: AuthUser }) {
           data.user.email?.toLowerCase() !== normalizedEmail.toLowerCase();
         setNotice(
           confirmationPending
-            ? "Your profile was saved. Check your new email address and follow the confirmation link to finish changing your email."
-            : "Your profile and email were updated.",
+            ? t("Your profile was saved. Check your new email address and follow the confirmation link to finish changing your email.")
+            : t("Your profile and email were updated."),
         );
         return;
       }
 
-      setNotice("Your profile was saved.");
+      setNotice(t("Your profile was saved."));
     } catch (error) {
       setProblem(
-        error instanceof Error ? error.message : "Could not save your profile.",
+        error instanceof Error ? t(error.message) : t("Could not save your profile."),
       );
     } finally {
       setSaving(false);
@@ -97,14 +99,13 @@ function ProfileForm({ user }: { user: AuthUser }) {
     <main className="mx-auto max-w-5xl px-5 py-8 md:px-8">
       <header>
         <p className="text-xs font-bold tracking-[0.16em] text-[#c90062]">
-          ACCOUNT SETTINGS
+          {t("ACCOUNT SETTINGS")}
         </p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-pine">
-          My profile
+          {t("My profile")}
         </h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">
-          View your account details and keep your contact information up to
-          date.
+          {t("View your account details and keep your contact information up to date.")}
         </p>
       </header>
 
@@ -118,7 +119,7 @@ function ProfileForm({ user }: { user: AuthUser }) {
               <UserRound className="h-6 w-6" aria-hidden="true" />
             </span>
             <div className="min-w-0">
-              <h2 className="font-semibold text-pine">Personal information</h2>
+              <h2 className="font-semibold text-pine">{t("Personal information")}</h2>
               <p className="truncate text-sm text-muted">{user.email}</p>
             </div>
           </div>
@@ -129,7 +130,7 @@ function ProfileForm({ user }: { user: AuthUser }) {
                 htmlFor="profile-full-name"
                 className="text-sm font-semibold text-pine"
               >
-                Full name
+                {t("Full name")}
               </label>
               <div className="relative mt-1.5">
                 <UserRound
@@ -155,7 +156,7 @@ function ProfileForm({ user }: { user: AuthUser }) {
                 htmlFor="profile-email"
                 className="text-sm font-semibold text-pine"
               >
-                Email address
+                {t("Email address")}
               </label>
               <div className="relative mt-1.5">
                 <Mail
@@ -175,8 +176,7 @@ function ProfileForm({ user }: { user: AuthUser }) {
                 />
               </div>
               <p className="mt-1.5 text-xs leading-5 text-muted">
-                Changing your email requires confirmation from your new email
-                inbox.
+                {t("Changing your email requires confirmation from your new email inbox.")}
               </p>
             </div>
 
@@ -185,7 +185,7 @@ function ProfileForm({ user }: { user: AuthUser }) {
                 htmlFor="profile-phone"
                 className="text-sm font-semibold text-pine"
               >
-                Phone number
+                {t("Phone number")}
               </label>
               <div className="relative mt-1.5">
                 <Phone
@@ -205,7 +205,7 @@ function ProfileForm({ user }: { user: AuthUser }) {
                 />
               </div>
               <p className="mt-1.5 text-xs leading-5 text-muted">
-                Contact information only; this phone number is not verified.
+                {t("Contact information only; this phone number is not verified.")}
               </p>
             </div>
           </div>
@@ -234,7 +234,7 @@ function ProfileForm({ user }: { user: AuthUser }) {
             className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#e90074] px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-pink-200 transition hover:bg-[#c90062] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             <Save className="h-4 w-4" aria-hidden="true" />
-            {saving ? "Saving profile…" : "Save changes"}
+            {saving ? t("Saving profile…") : t("Save changes")}
           </button>
         </form>
 
@@ -242,26 +242,25 @@ function ProfileForm({ user }: { user: AuthUser }) {
           <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#fde2f0] text-[#d50068]">
             <ShieldCheck className="h-5 w-5" aria-hidden="true" />
           </span>
-          <h2 className="mt-4 font-semibold text-pine">Account access</h2>
+          <h2 className="mt-4 font-semibold text-pine">{t("Account access")}</h2>
           <p className="mt-1 text-sm leading-6 text-muted">
-            Your role and account status are managed by your pharmacy. Contact a
-            manager if you need access changes.
+            {t("Your role and account status are managed by your pharmacy. Contact a manager if you need access changes.")}
           </p>
           <dl className="mt-5 space-y-4 border-t border-[#f1c7dc] pt-5">
             <div>
-              <dt className="text-xs font-medium text-muted">Role</dt>
+              <dt className="text-xs font-medium text-muted">{t("Role")}</dt>
               <dd className="mt-1 inline-flex rounded-full bg-[#fde2f0] px-2.5 py-1 text-xs font-bold capitalize text-[#c90062]">
                 {user.role}
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-medium text-muted">Account status</dt>
+              <dt className="text-xs font-medium text-muted">{t("Account status")}</dt>
               <dd className="mt-1 inline-flex items-center gap-2 text-sm font-semibold text-ok">
                 <span
                   className="h-2 w-2 rounded-full bg-ok"
                   aria-hidden="true"
                 />
-                Active
+                {t("Active")}
               </dd>
             </div>
           </dl>

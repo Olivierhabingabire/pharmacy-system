@@ -9,13 +9,14 @@ import {
   type PharmacyOrder,
 } from "@/lib/api";
 import { money } from "@/lib/format";
+import { useLanguage } from "@/lib/language";
 
 type QueueState =
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "ready"; orders: PharmacyOrder[] };
 
-const statusLabel: Record<OrderStatus, string> = {
+const statusMessage: Record<OrderStatus, string> = {
   submitted: "Awaiting review",
   ready_for_pickup: "Ready for pickup",
   declined: "Declined",
@@ -31,6 +32,7 @@ async function responseError(response: Response) {
 }
 
 export default function StaffOrdersPage() {
+  const { t, language } = useLanguage();
   const [state, setState] = useState<QueueState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
   const [working, setWorking] = useState<string | null>(null);
@@ -75,18 +77,18 @@ export default function StaffOrdersPage() {
       if (!response.ok) throw new Error(await responseError(response));
       setNotice(
         action === "approve"
-          ? "Order approved and stock reserved. It is ready for pickup."
+          ? t("Order approved and stock reserved. It is ready for pickup.")
           : action === "complete"
-            ? "Order marked collected and recorded as a sale."
+            ? t("Order marked collected and recorded as a sale.")
             : action === "decline"
-              ? "Order declined."
-              : "Order cancelled and reserved stock released.",
+              ? t("Order declined.")
+              : t("Order cancelled and reserved stock released."),
       );
       const orders = await fetchOrders();
       setState({ status: "ready", orders });
     } catch (error) {
       setProblem(
-        error instanceof Error ? error.message : "Could not update this order.",
+        error instanceof Error ? t(error.message) : t("Could not update this order."),
       );
     } finally {
       setWorking(null);
@@ -101,15 +103,13 @@ export default function StaffOrdersPage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-bold tracking-[0.16em] text-[#c90062]">
-            PHARMACY WORKSPACE
+            {t("PHARMACY WORKSPACE")}
           </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-pine">
-            Customer orders
+            {t("Customer orders")}
           </h1>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-muted">
-            Review customer requests, check prescription requirements, and
-            prepare approved orders for pickup. A sale is recorded only when
-            the customer collects the medicines.
+            {t("Review customer requests, check prescription requirements, and prepare approved orders for pickup. A sale is recorded only when the customer collects the medicines.")}
           </p>
         </div>
         <button
@@ -120,7 +120,7 @@ export default function StaffOrdersPage() {
           className="inline-flex items-center gap-2 rounded-xl border border-rule bg-white px-3 py-2 text-sm font-semibold text-pine hover:bg-[#fff5fa]"
         >
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          Refresh
+          {t("Refresh")}
         </button>
       </header>
 
@@ -135,7 +135,7 @@ export default function StaffOrdersPage() {
         </p>
       )}
       {state.status === "loading" && (
-        <p className="mt-8 text-sm text-muted">Loading customer orders…</p>
+        <p className="mt-8 text-sm text-muted">{t("Loading customer orders…")}</p>
       )}
       {state.status === "error" && (
         <div className="mt-6 rounded-xl border border-red/30 bg-red-bg p-4 text-sm text-red">
@@ -144,7 +144,7 @@ export default function StaffOrdersPage() {
             onClick={() => setAttempt((value) => value + 1)}
             className="mt-3 font-semibold underline"
           >
-            Try again
+            {t("Try again")}
           </button>
         </div>
       )}
@@ -152,7 +152,7 @@ export default function StaffOrdersPage() {
         (orders.length ? (
           <>
             <p className="mt-5 text-sm text-muted">
-              {pendingCount} request{pendingCount === 1 ? "" : "s"} awaiting review
+              {pendingCount} {pendingCount === 1 ? t("request") : t("requests")} {t("awaiting review")}
             </p>
             <ul className="mt-4 space-y-4">
               {orders.map((order) => (
@@ -163,7 +163,7 @@ export default function StaffOrdersPage() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                        Request {order.id.slice(0, 8)}
+                        {t("Request")} {order.id.slice(0, 8)}
                       </p>
                       <h2 className="mt-1 font-bold text-pine">
                         {order.customer_name || "Customer"}
@@ -173,11 +173,11 @@ export default function StaffOrdersPage() {
                         {order.customer_phone ? ` · ${order.customer_phone}` : ""}
                       </p>
                       <p className="mt-1 text-xs text-muted">
-                        {new Date(order.created_at).toLocaleString()}
+                        {new Date(order.created_at).toLocaleString(language === "fr" ? "fr-FR" : language === "rw" ? "rw-RW" : "en-GB")}
                       </p>
                     </div>
                     <span className="rounded-full bg-[#fde2f0] px-3 py-1 text-xs font-bold text-[#c90062]">
-                      {statusLabel[order.status]}
+                      {t(statusMessage[order.status])}
                     </span>
                   </div>
 
@@ -197,18 +197,18 @@ export default function StaffOrdersPage() {
                     ))}
                   </ul>
                   <div className="mt-3 flex justify-between text-sm font-bold text-pine">
-                    <span>Total</span>
+                    <span>{t("Total")}</span>
                     <span>{money(order.total)} RWF</span>
                   </div>
                   {order.customer_note && (
                     <p className="mt-3 rounded-lg bg-[#fff5fa] p-3 text-sm text-pine">
-                      <span className="font-semibold">Customer note:</span>{" "}
+                      <span className="font-semibold">{t("Customer note:")}</span>{" "}
                       {order.customer_note}
                     </p>
                   )}
                   {order.staff_note && (
                     <p className="mt-2 text-sm text-muted">
-                      <span className="font-semibold text-pine">Staff note:</span>{" "}
+                      <span className="font-semibold text-pine">{t("Staff note:")}</span>{" "}
                       {order.staff_note}
                     </p>
                   )}
@@ -227,11 +227,10 @@ export default function StaffOrdersPage() {
                           }
                           className="mt-1 accent-[#e90074]"
                         />
-                        I reviewed this request and checked whether a
-                        prescription is required and valid.
+                        {t("I reviewed this request and checked whether a prescription is required and valid.")}
                       </label>
                       <label className="mt-3 block text-sm font-semibold text-pine">
-                        Note to customer
+                        {t("Note to customer")}
                         <textarea
                           value={notes[order.id] ?? ""}
                           onChange={(event) =>
@@ -242,7 +241,7 @@ export default function StaffOrdersPage() {
                           }
                           maxLength={500}
                           rows={2}
-                          placeholder="Required if declining"
+                          placeholder={t("Required if declining")}
                           className="mt-1.5 w-full resize-y rounded-xl border border-rule px-3 py-2 text-sm font-normal focus:border-cross focus:outline-none focus:ring-2 focus:ring-cross/20"
                         />
                       </label>
@@ -252,14 +251,14 @@ export default function StaffOrdersPage() {
                           disabled={working !== null || !reviewed[order.id]}
                           className="rounded-xl bg-[#e90074] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#c90062] disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {working === order.id ? "Updating…" : "Approve & reserve stock"}
+                          {working === order.id ? t("Updating…") : t("Approve & reserve stock")}
                         </button>
                         <button
                           onClick={() => void updateOrder(order, "decline")}
                           disabled={working !== null || !(notes[order.id] ?? "").trim()}
                           className="rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          Decline
+                          {t("Decline")}
                         </button>
                       </div>
                     </div>
@@ -268,7 +267,7 @@ export default function StaffOrdersPage() {
                   {order.status === "ready_for_pickup" && (
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-4">
                       <p className="text-sm font-semibold text-emerald-700">
-                        Reserved and waiting for pickup.
+                        {t("Reserved and waiting for pickup.")}
                       </p>
                       <div className="flex gap-2">
                         <button
@@ -276,14 +275,14 @@ export default function StaffOrdersPage() {
                           disabled={working !== null}
                           className="rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50"
                         >
-                          {working === order.id ? "Updating…" : "Mark collected"}
+                          {working === order.id ? t("Updating…") : t("Mark collected")}
                         </button>
                         <button
                           onClick={() => void updateOrder(order, "cancel")}
                           disabled={working !== null}
                           className="rounded-xl border border-rule px-4 py-2.5 text-sm font-semibold text-pine hover:bg-[#fff5fa] disabled:opacity-50"
                         >
-                          Cancel & release stock
+                          {t("Cancel & release stock")}
                         </button>
                       </div>
                     </div>
@@ -294,7 +293,7 @@ export default function StaffOrdersPage() {
           </>
         ) : (
           <p className="mt-6 rounded-2xl border border-dashed border-rule bg-white p-8 text-center text-sm text-muted">
-            No customer requests have been submitted yet.
+            {t("No customer requests have been submitted yet.")}
           </p>
         ))}
     </main>

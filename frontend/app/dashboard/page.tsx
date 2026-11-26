@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { API_URL, authFetch, type Analytics, type Medicine } from "@/lib/api";
 import { compact, money } from "@/lib/format";
 import { daysFromToday, shortDate } from "@/lib/status";
+import { useLanguage } from "@/lib/language";
 
 type State =
   | { status: "loading" }
@@ -20,6 +21,7 @@ async function getJson<T>(url: string, signal: AbortSignal): Promise<T> {
 }
 
 export default function DashboardPage() {
+  const { t, language } = useLanguage();
   const [state, setState] = useState<State>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
 
@@ -47,7 +49,8 @@ export default function DashboardPage() {
     return () => controller.abort();
   }, [attempt]);
 
-  const today = new Date().toLocaleDateString("en-GB", {
+  const locale = language === "fr" ? "fr-FR" : language === "rw" ? "rw-RW" : "en-GB";
+  const today = new Date().toLocaleDateString(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -58,14 +61,14 @@ export default function DashboardPage() {
     <main className="mx-auto max-w-6xl px-5 py-8 md:px-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("Dashboard")}</h1>
           <p className="mt-1 text-sm text-muted">{today}</p>
         </div>
         <Link
           href="/sales"
           className="rounded-xl bg-[#e90074] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-pink-200 transition hover:bg-[#c90062]"
         >
-          New sale
+          {t("New sale")}
         </Link>
       </header>
 
@@ -81,7 +84,7 @@ export default function DashboardPage() {
             }}
             className="mt-3 rounded-md bg-red px-3 py-1.5 font-medium text-white"
           >
-            Try again
+            {t("Try again")}
           </button>
         </div>
       )}
@@ -100,6 +103,7 @@ function Overview({
   analytics: Analytics;
   medicines: Medicine[];
 }) {
+  const { t } = useLanguage();
   const days = analytics.daily_revenue;
   const todayRow = days[days.length - 1];
 
@@ -115,11 +119,11 @@ function Overview({
   return (
     <>
       <dl className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-rule bg-rule shadow-sm sm:grid-cols-4">
-        <Stat label="Revenue today" value={`${money(todayRow?.revenue ?? 0)} RWF`} />
-        <Stat label="Receipts today" value={String(todayRow?.receipts ?? 0)} />
-        <Stat label="Items sold today" value={String(todayRow?.items_sold ?? 0)} />
+        <Stat label={t("Revenue today")} value={`${money(todayRow?.revenue ?? 0)} RWF`} />
+        <Stat label={t("Receipts today")} value={String(todayRow?.receipts ?? 0)} />
+        <Stat label={t("Items sold today")} value={String(todayRow?.items_sold ?? 0)} />
         <Stat
-          label="Medicines needing attention"
+          label={t("Medicines needing attention")}
           value={String(flagged.size)}
           tone={flagged.size > 0 ? "alert" : "normal"}
         />
@@ -129,14 +133,14 @@ function Overview({
         <div className="space-y-10">
           <section aria-labelledby="revenue-heading" className="rounded-2xl border border-rule bg-white p-5 shadow-sm sm:p-6">
             <h2 id="revenue-heading" className="font-semibold text-pine">
-              Sales, last 7 days
+              {t("Sales, last 7 days")}
             </h2>
             <RevenueBars days={days} />
           </section>
 
           <section aria-labelledby="sellers-heading" className="rounded-2xl border border-rule bg-white p-5 shadow-sm sm:p-6">
             <h2 id="sellers-heading" className="font-semibold text-pine">
-              Best sellers
+              {t("Best sellers")}
             </h2>
             <BestSellers sellers={analytics.best_sellers} />
           </section>
@@ -144,34 +148,34 @@ function Overview({
 
         <aside aria-labelledby="attention-heading" className="max-lg:order-first rounded-2xl border border-rule bg-white p-5 shadow-sm sm:p-6">
           <h2 id="attention-heading" className="font-semibold text-pine">
-            Needs attention
+            {t("Needs attention")}
           </h2>
           <Attention
             groups={[
               {
                 key: "expired",
-                title: "Expired",
+                title: t("Expired"),
                 tone: "red",
                 items: expired,
                 note: (m) => `expired ${shortDate(m.expiry_date)}`,
               },
               {
                 key: "expiring",
-                title: "Expires within 30 days",
+                title: t("Expires within 30 days"),
                 tone: "amber",
                 items: expiringSoon,
                 note: (m) => `${daysFromToday(m.expiry_date)} days left`,
               },
               {
                 key: "out",
-                title: "Out of stock",
+                title: t("Out of stock"),
                 tone: "red",
                 items: outOfStock,
                 note: () => "0 left",
               },
               {
                 key: "low",
-                title: "Low stock",
+                title: t("Low stock"),
                 tone: "amber",
                 items: lowStock,
                 note: (m) => `${m.stock} left`,
@@ -208,13 +212,14 @@ function Stat({
 }
 
 function RevenueBars({ days }: { days: Analytics["daily_revenue"] }) {
+  const { t, language } = useLanguage();
   const values = days.map((d) => Number(d.revenue));
   const max = Math.max(...values, 0);
 
   if (max === 0) {
     return (
       <p className="mt-4 rounded-lg border border-dashed border-rule p-6 text-sm text-muted">
-        No sales in the last 7 days. Complete a sale and it will appear here.
+        {t("No sales in the last 7 days. Complete a sale and it will appear here.")}
       </p>
     );
   }
@@ -262,7 +267,7 @@ function RevenueBars({ days }: { days: Analytics["daily_revenue"] }) {
               i === days.length - 1 ? "font-semibold text-ink" : ""
             }`}
           >
-            {new Date(`${d.date}T00:00:00`).toLocaleDateString("en-GB", {
+            {new Date(`${d.date}T00:00:00`).toLocaleDateString(language === "fr" ? "fr-FR" : language === "rw" ? "rw-RW" : "en-GB", {
               weekday: "short",
             })}
           </span>
@@ -273,10 +278,11 @@ function RevenueBars({ days }: { days: Analytics["daily_revenue"] }) {
 }
 
 function BestSellers({ sellers }: { sellers: Analytics["best_sellers"] }) {
+  const { t } = useLanguage();
   if (sellers.length === 0) {
     return (
       <p className="mt-4 rounded-lg border border-dashed border-rule p-6 text-sm text-muted">
-        Best sellers appear after the first receipt.
+        {t("Best sellers appear after the first receipt.")}
       </p>
     );
   }
@@ -317,12 +323,13 @@ type Group = {
 };
 
 function Attention({ groups }: { groups: Group[] }) {
+  const { t } = useLanguage();
   const active = groups.filter((g) => g.items.length > 0);
 
   if (active.length === 0) {
     return (
       <p className="mt-3 rounded-lg border border-rule bg-surface p-5 text-sm text-muted">
-        Nothing needs attention. Stock levels and expiry dates look fine.
+        {t("Nothing needs attention. Stock levels and expiry dates look fine.")}
       </p>
     );
   }
@@ -338,7 +345,7 @@ function Attention({ groups }: { groups: Group[] }) {
               }`}
               aria-hidden="true"
             />
-            {g.title}
+            {t(g.title)}
             <span className="font-normal tabular-nums text-muted">
               {g.items.length}
             </span>
@@ -373,8 +380,9 @@ function Attention({ groups }: { groups: Group[] }) {
 }
 
 function Skeleton() {
+  const { t } = useLanguage();
   return (
-    <div className="mt-8 space-y-6" aria-busy="true" aria-label="Loading">
+    <div className="mt-8 space-y-6" aria-busy="true" aria-label={t("Loading…")}>
       <div className="h-20 rounded-lg bg-rule motion-safe:animate-pulse" />
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="h-64 rounded-lg bg-rule motion-safe:animate-pulse" />

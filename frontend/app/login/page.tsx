@@ -19,6 +19,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { API_URL } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
+import { LanguageSelector, useLanguage } from "@/lib/language";
 
 const inputClass =
   "w-full rounded-xl border border-[#e7d6df] bg-white py-3 pl-10 text-sm text-[#17213a] placeholder:text-slate-400 focus:border-[#e90074] focus:outline-none focus:ring-2 focus:ring-[#e90074]/15";
@@ -37,6 +38,7 @@ async function responseError(response: Response) {
 export default function LoginPage() {
   const router = useRouter();
   const { state, refreshUser } = useAuth();
+  const { t } = useLanguage();
   const [mode, setMode] = useState<Mode>("signIn");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -69,7 +71,7 @@ export default function LoginPage() {
       body: JSON.stringify({ code, full_name: name.trim() }),
     });
     if (!response.ok) throw new Error(await responseError(response));
-    setNotice("Your pharmacist account is authorized. Opening your workspace…");
+    setNotice(t("Your pharmacist account is authorized. Opening your workspace…"));
     refreshUser();
   }
 
@@ -81,7 +83,7 @@ export default function LoginPage() {
 
     if (mode === "register") {
       if (!fullName.trim()) {
-        setError("Enter your full name.");
+        setError(t("Enter your full name."));
         return;
       }
       if (password.length < MIN_PASSWORD_LENGTH) {
@@ -108,8 +110,8 @@ export default function LoginPage() {
         if (signInError) {
           throw new Error(
             signInError.status === 400
-              ? "That email or password is not correct."
-              : "Could not sign in. Check your connection and try again.",
+              ? t("That email or password is not correct.")
+              : t("Could not sign in. Check your connection and try again."),
           );
         }
       } else {
@@ -126,7 +128,7 @@ export default function LoginPage() {
         if (!response.ok) throw new Error(await responseError(response));
 
         setNotice(
-          "Your account is active. Sign in with the email and password you just registered.",
+          t("Your account is active. Sign in with the email and password you just registered."),
         );
         setPassword("");
         setRegistrationCode("");
@@ -136,7 +138,7 @@ export default function LoginPage() {
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Could not complete the request. Try again.",
+          : t("Could not complete the request. Try again."),
       );
     } finally {
       setSubmitting(false);
@@ -152,7 +154,7 @@ export default function LoginPage() {
     try {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
-        throw new Error("Your session expired. Sign in again to activate.");
+        throw new Error(t("Your session expired. Sign in again to activate."));
       }
       await activatePharmacist(
         data.session.access_token,
@@ -163,7 +165,7 @@ export default function LoginPage() {
       setError(
         activationError instanceof Error
           ? activationError.message
-          : "Could not activate this account. Try again.",
+          : t("Could not activate this account. Try again."),
       );
     } finally {
       setSubmitting(false);
@@ -192,7 +194,7 @@ export default function LoginPage() {
       />
 
       <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between border-b border-[#f2c5da] py-4">
-        <Link href="/" aria-label="Pharmacy Desk home" className="flex items-center gap-3">
+        <Link href="/" aria-label={t("Pharmacy Desk home")} className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#e90074] text-white shadow-md shadow-pink-200">
             <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden="true">
               <path
@@ -206,28 +208,30 @@ export default function LoginPage() {
           <span className="text-[15px] font-bold leading-tight tracking-tight text-[#13213a] sm:text-base">
             Pharmacy <span className="text-[#e90074]">Desk</span>
             <span className="mt-0.5 block text-[10px] font-medium tracking-wide text-slate-500">
-              STOCK. SALES. SIMPLIFIED.
+              {t("STOCK. SALES. SIMPLIFIED.")}
             </span>
           </span>
         </Link>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#f1b1d0] bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-[#c90062] sm:px-4 sm:text-xs">
-          <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-          Secure staff access
-        </span>
+        <div className="flex items-center gap-3">
+          <LanguageSelector />
+          <span className="hidden items-center gap-1.5 rounded-full border border-[#f1b1d0] bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-[#c90062] sm:inline-flex sm:px-4 sm:text-xs">
+            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+            {t("Secure staff access")}
+          </span>
+        </div>
       </header>
 
       <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-8 pt-8 sm:pt-12 lg:grid-cols-[1fr_0.92fr] lg:gap-14 lg:pt-14">
         <aside className="hidden lg:block">
           <p className="text-xs font-bold tracking-[0.16em] text-[#cf0065]">
-            YOUR PHARMACY, MORE CONNECTED
+            {t("YOUR PHARMACY, MORE CONNECTED")}
           </p>
           <h2 className="mt-4 max-w-xl text-5xl font-extrabold leading-[1.04] tracking-[-0.05em] text-[#142039]">
-            Your team’s work,{" "}
-            <span className="text-[#e90074]">all in one place.</span>
+            {t("Your team’s work,")}{" "}
+            <span className="text-[#e90074]">{t("all in one place.")}</span>
           </h2>
           <p className="mt-5 max-w-lg text-base leading-7 text-slate-600">
-            Sign in to manage medicine stock, make counter sales, and keep an
-            eye on expiry dates and business performance.
+            {t("Sign in to manage medicine stock, make counter sales, and keep an eye on expiry dates and business performance.")}
           </p>
           <div className="relative mt-8 overflow-hidden rounded-[1.75rem] border-4 border-white shadow-[0_25px_70px_-25px_rgba(181,16,93,0.35)]">
             <div className="relative aspect-[1.45/1]">
@@ -245,7 +249,7 @@ export default function LoginPage() {
                     Pharmacy Desk
                   </p>
                   <p className="mt-1 text-lg font-semibold">
-                    A smoother day starts here.
+                    {t("A smoother day starts here.")}
                   </p>
                 </div>
                 <ShieldCheck className="h-7 w-7 shrink-0" aria-hidden="true" />
@@ -258,7 +262,7 @@ export default function LoginPage() {
                 key={item}
                 className="rounded-full border border-[#f1c7dc] bg-white/75 px-3 py-1.5"
               >
-                {item}
+                {t(item)}
               </span>
             ))}
           </div>
@@ -276,21 +280,21 @@ export default function LoginPage() {
           </div>
           <h1 className="text-center text-2xl font-extrabold tracking-tight text-[#142039]">
             {accountDeactivated
-              ? "Staff access deactivated"
+              ? t("Staff access deactivated")
               : accountNeedsActivation
-              ? "Activate pharmacist access"
+              ? t("Activate pharmacist access")
               : mode === "register"
-                ? "Register as a pharmacist"
-                : "Sign in"}
+                ? t("Register as a pharmacist")
+                : t("Sign in")}
           </h1>
           <p className="mx-auto mt-2 max-w-sm text-center text-sm leading-6 text-slate-600">
             {accountDeactivated
-              ? "This account can no longer access the Pharmacy Desk workspace. Contact a manager if you think this is a mistake."
+              ? t("This account can no longer access the Pharmacy Desk workspace. Contact a manager if you think this is a mistake.")
               : accountNeedsActivation
-              ? `Signed in as ${pendingEmail}. Enter the code your manager gave you to enable pharmacist access.`
+              ? t("Signed in as {email}. Enter the code your manager gave you to enable pharmacist access.").replace("{email}", pendingEmail)
               : mode === "register"
-                ? "Ask your manager for the shared registration code before creating your account."
-                : "Sign in to your Pharmacy Desk account."}
+                ? t("Ask your manager for the shared registration code before creating your account.")
+                : t("Sign in to your Pharmacy Desk account.")}
           </p>
 
           {accountDeactivated ? (
@@ -299,7 +303,7 @@ export default function LoginPage() {
               onClick={() => void supabase.auth.signOut()}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-[#f1b1d0] px-4 py-3 text-sm font-semibold text-[#c90062] transition hover:bg-[#fff1f7]"
             >
-              Sign out
+              {t("Sign out")}
             </button>
           ) : accountNeedsActivation ? (
             <form
@@ -309,7 +313,7 @@ export default function LoginPage() {
             >
               <div>
                 <label htmlFor="full-name" className="text-sm font-medium">
-                  Full name
+                  {t("Full name")}
                 </label>
                 <div className="relative mt-1.5">
                   <UserRound
@@ -342,7 +346,7 @@ export default function LoginPage() {
                 className="flex items-center justify-center gap-2 rounded-xl bg-[#e90074] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#c90062] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting && <Spinner />}
-                {submitting ? "Activating account" : "Activate pharmacist account"}
+                {submitting ? t("Activating account") : t("Activate pharmacist account")}
                 {!submitting && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
               </button>
               <button
@@ -350,7 +354,7 @@ export default function LoginPage() {
                 onClick={() => void supabase.auth.signOut()}
                 className="text-sm font-medium text-slate-500 hover:text-[#c90062]"
               >
-                Sign out and use another account
+                {t("Sign out and use another account")}
               </button>
             </form>
           ) : (
@@ -358,7 +362,7 @@ export default function LoginPage() {
               {mode === "register" && (
                 <div>
                   <label htmlFor="full-name" className="text-sm font-medium">
-                    Full name
+                    {t("Full name")}
                   </label>
                   <div className="relative mt-1.5">
                     <UserRound
@@ -379,7 +383,7 @@ export default function LoginPage() {
 
               <div>
                 <label htmlFor="email" className="text-sm font-medium">
-                  Email
+                  {t("Email")}
                 </label>
                 <div className="relative mt-1.5">
                   <Mail
@@ -401,7 +405,7 @@ export default function LoginPage() {
 
               <div>
                 <label htmlFor="password" className="text-sm font-medium">
-                  Password
+                  {t("Password")}
                 </label>
                 <div className="relative mt-1.5">
                   <Lock
@@ -425,7 +429,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((value) => !value)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={showPassword ? t("Hide password") : t("Show password")}
                     aria-pressed={showPassword}
                     className="absolute right-1.5 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-muted hover:bg-paper hover:text-ink"
                   >
@@ -445,8 +449,8 @@ export default function LoginPage() {
                     onChange={setRegistrationCode}
                   />
                   <p className="-mt-3 text-xs leading-5 text-muted">
-                    Password: at least {MIN_PASSWORD_LENGTH} characters.
-                    Registration code: at least{" "}
+                    {t("Password: at least {length} characters.").replace("{length}", String(MIN_PASSWORD_LENGTH))}
+                    {t("Registration code: at least")}{" "}
                     {MIN_REGISTRATION_CODE_LENGTH} characters.
                   </p>
                 </>
@@ -463,11 +467,11 @@ export default function LoginPage() {
                 {submitting && <Spinner />}
                 {submitting
                   ? mode === "register"
-                    ? "Creating account"
-                    : "Signing in"
+                    ? t("Creating account")
+                    : t("Signing in")
                   : mode === "register"
-                    ? "Create pharmacist account"
-                    : "Sign in"}
+                    ? t("Create pharmacist account")
+                    : t("Sign in")}
                 {!submitting && <ArrowRight className="h-4 w-4" aria-hidden="true" />}
               </button>
             </form>
@@ -478,7 +482,7 @@ export default function LoginPage() {
               {mode === "signIn" ? (
                 <>
                   <p className="text-sm text-muted">
-                    New pharmacist?{" "}
+                    {t("New pharmacist?")}{" "}
                     <button
                       type="button"
                       onClick={() => {
@@ -488,20 +492,20 @@ export default function LoginPage() {
                       }}
                       className="font-semibold text-[#d50068] hover:underline"
                     >
-                      Register with a manager code
+                      {t("Register with a manager code")}
                     </button>
                   </p>
                   <p className="mt-3 text-sm text-muted">
-                    Looking for medicine?{" "}
+                    {t("Looking for medicine?")}{" "}
                     <Link
                       href="/customer/register"
                       className="font-semibold text-[#d50068] hover:underline"
                     >
-                      Create a customer account
+                      {t("Create a customer account")}
                     </Link>
                   </p>
                   <p className="mt-4 text-xs text-muted">
-                    Forgot your password? Ask your manager to reset it.
+                    {t("Forgot your password? Ask your manager to reset it.")}
                   </p>
                 </>
               ) : (
@@ -515,7 +519,7 @@ export default function LoginPage() {
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#d50068] hover:underline"
                 >
                   <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                  Back to sign in
+                  {t("Back to sign in")}
                 </button>
               )}
             </div>
@@ -528,7 +532,7 @@ export default function LoginPage() {
             className="inline-flex items-center gap-1.5 text-xs font-medium text-[#bd005d] hover:text-[#e90074]"
           >
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            Back to Pharmacy Desk
+            {t("Back to Pharmacy Desk")}
           </Link>
         </div>
       </div>
@@ -544,10 +548,11 @@ function RegistrationCodeField({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const { t } = useLanguage();
   return (
     <div>
       <label htmlFor="registration-code" className="text-sm font-medium">
-        Manager registration code
+        {t("Manager registration code")}
       </label>
       <div className="relative mt-1.5">
         <Lock
@@ -571,24 +576,26 @@ function RegistrationCodeField({
 }
 
 function Problem({ message }: { message: string }) {
+  const { t } = useLanguage();
   return (
     <p
       role="alert"
       className="flex items-start gap-2 rounded-lg bg-red-bg px-3 py-2.5 text-sm text-red"
     >
       <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-      {message}
+      {t(message)}
     </p>
   );
 }
 
 function Notice({ message }: { message: string }) {
+  const { t } = useLanguage();
   return (
     <p
       role="status"
       className="rounded-lg bg-ok-bg px-3 py-2.5 text-sm leading-5 text-ok"
     >
-      {message}
+      {t(message)}
     </p>
   );
 }
