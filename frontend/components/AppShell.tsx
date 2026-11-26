@@ -9,6 +9,7 @@ import {
   Menu,
   Pill,
   ReceiptText,
+  ShoppingBag,
   UserRound,
   Users,
   X,
@@ -19,11 +20,16 @@ import CustomerSupportFooter from "@/components/CustomerSupport";
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, managerOnly: true },
   { href: "/staff-access", label: "Staff access", icon: Users, managerOnly: true },
-  { href: "/sales", label: "New sale", icon: ReceiptText, managerOnly: false },
-  { href: "/medicines", label: "Medicines", icon: Pill, managerOnly: false },
-  { href: "/profile", label: "My profile", icon: UserRound, managerOnly: false },
+  { href: "/sales", label: "New sale", icon: ReceiptText, staffOnly: true },
+  { href: "/medicines", label: "Medicines", icon: Pill, staffOnly: true },
+  { href: "/staff/orders", label: "Customer orders", icon: ShoppingBag, staffOnly: true },
+  { href: "/customer/catalog", label: "Browse medicines", icon: Pill, customerOnly: true },
+  { href: "/customer/orders", label: "My orders", icon: ShoppingBag, customerOnly: true },
+  { href: "/profile", label: "My profile", icon: UserRound },
 ];
 
+const customerOnlyPaths = ["/customer/catalog", "/customer/orders"];
+const staffOnlyPaths = ["/dashboard", "/staff-access", "/sales", "/medicines", "/staff/orders"];
 const managerOnlyPaths = ["/dashboard", "/staff-access"];
 
 function isActive(pathname: string, href: string) {
@@ -56,17 +62,24 @@ function Brand() {
 function Nav({
   pathname,
   isManager,
+  isCustomer,
   onNavigate,
 }: {
   pathname: string;
   isManager: boolean;
+  isCustomer: boolean;
   onNavigate?: () => void;
 }) {
   return (
     <nav aria-label="Main">
       <ul className="space-y-1">
         {nav
-          .filter((item) => isManager || !item.managerOnly)
+          .filter(
+            (item) =>
+              (!item.managerOnly || isManager) &&
+              (!item.staffOnly || !isCustomer) &&
+              (!item.customerOnly || isCustomer),
+          )
           .map(({ href, label, icon: Icon }) => {
             const active = isActive(pathname, href);
             return (
@@ -142,30 +155,53 @@ function Shell({ children }: { children: React.ReactNode }) {
 
   const onLogin = pathname === "/login";
   const onLanding = pathname === "/";
+  const onCustomerRegister = pathname === "/customer/register";
   const user = state.status === "signedIn" ? state.user : null;
   const isManager = user?.role === "manager";
+  const isCustomer = user?.role === "customer";
   const userRole = user?.role;
   const blocked =
     !!user &&
     user.role !== null &&
-    !isManager &&
-    managerOnlyPaths.some(
-      (path) => pathname === path || pathname.startsWith(`${path}/`),
-    );
+    (isCustomer
+      ? staffOnlyPaths.some((path) => isActive(pathname, path))
+      : customerOnlyPaths.some((path) => isActive(pathname, path))) ||
+    (!!user &&
+      !isManager &&
+      managerOnlyPaths.some((path) => isActive(pathname, path))) ||
+    (!!user && onCustomerRegister);
 
   useEffect(() => {
-    if (state.status === "signedOut" && !onLogin && !onLanding) {
+    if (
+      state.status === "signedOut" &&
+      !onLogin &&
+      !onLanding &&
+      !onCustomerRegister
+    ) {
       router.replace("/login");
     }
     if (
       state.status === "signedIn" &&
       userRole === null &&
-      !onLogin
+      !onLogin &&
+      !onCustomerRegister
     ) {
       router.replace("/login");
     }
-    if (blocked) router.replace("/sales");
-  }, [state.status, userRole, onLogin, onLanding, blocked, router]);
+    if (blocked) {
+      router.replace(isCustomer ? "/customer/catalog" : isManager ? "/dashboard" : "/sales");
+    }
+  }, [
+    state.status,
+    userRole,
+    onLogin,
+    onLanding,
+    onCustomerRegister,
+    blocked,
+    isCustomer,
+    isManager,
+    router,
+  ]);
 
   if (onLogin) {
     return (
@@ -176,6 +212,14 @@ function Shell({ children }: { children: React.ReactNode }) {
     );
   }
   if (onLanding) return <>{children}</>;
+  if (onCustomerRegister && !user) {
+    return (
+      <>
+        {children}
+        <CustomerSupportFooter />
+      </>
+    );
+  }
   if (state.status === "loading" || state.status === "signedOut" || blocked) {
     return <Splash />;
   }
@@ -226,7 +270,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <h1 className="text-lg font-semibold">No role assigned yet</h1>
         <p className="mt-2 text-sm text-muted">
           You are signed in as {user?.email}, but your account has no role. Ask
-          a manager to add you as a pharmacist or manager.
+          a manager to add you to the pharmacy team.
         </p>
         <button
           onClick={signOut}
@@ -248,7 +292,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
           Workspace
         </p>
-        <Nav pathname={pathname} isManager={isManager} />
+        <Nav pathname={pathname} isManager={isManager} isCustomer={isCustomer} />
         <div className="mt-auto px-1">
           <Account user={user} />
         </div>
@@ -291,6 +335,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             <Nav
               pathname={pathname}
               isManager={isManager}
+              isCustomer={isCustomer}
               onNavigate={() => setOpen(false)}
             />
             <div className="mt-auto px-1">

@@ -15,10 +15,18 @@ class IsManager(HasRole):
     allowed_roles = ("manager",)
 
 
+class IsCustomer(HasRole):
+    allowed_roles = ("customer",)
+
+
 class IsStaff(HasRole):
     """Any signed-in person with a role: pharmacist or manager."""
 
     allowed_roles = ("pharmacist", "manager")
+
+
+class IsAccountUser(HasRole):
+    allowed_roles = ("customer", "pharmacist", "manager")
 
 
 class ManagerCanWrite(BasePermission):

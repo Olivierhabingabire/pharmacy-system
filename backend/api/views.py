@@ -14,10 +14,18 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Medicine, Profile, RegistrationSetting, Sale
-from .permissions import IsManager, IsStaff, ManagerCanWrite
+from .models import (
+    CustomerOrder,
+    CustomerOrderItem,
+    Medicine,
+    Profile,
+    RegistrationSetting,
+    Sale,
+)
+from .permissions import IsAccountUser, IsCustomer, IsManager, IsStaff, ManagerCanWrite
 from .serializers import (
     ActivatePharmacistSerializer,
+    CustomerOrderCreateSerializer,
     MedicineSerializer,
     ProfileUpdateSerializer,
     RegistrationCodeSerializer,
@@ -238,7 +246,7 @@ class Me(APIView):
 
 
 class ProfileView(APIView):
-    permission_classes = [IsStaff]
+    permission_classes = [IsAccountUser]
 
     def get(self, request):
         profile = Profile.objects.get(id=request.user.id)
@@ -525,3 +533,371 @@ class PharmacistDetail(APIView):
                 "is_active": profile.is_active,
             }
         )
+
+
+def order_payload(order, customer_profile=None):
+    items = list(order.items.select_related("medicine").all())
+    lines = []
+    total = Decimal("0")
+    for item in items:
+        line_total = item.unit_price * item.qty
+        total += line_total
+        lines.append(
+            {
+                "medicine_id": item.medicine_id,
+                "name": item.medicine.name,
+                "qty": item.qty,
+                "unit_price": str(item.unit_price),
+                "line_total": str(line_total),
+            }
+        )
+    payload = {
+        "id": str(order.id),
+        "status": order.status,
+        "customer_note": order.customer_note,
+        "staff_note": order.staff_note,
+        "pharmacist_id": str(order.pharmacist_id) if order.pharmacist_id else None,
+        "created_at": order.created_at.isoformat(),
+        "updated_at": order.updated_at.isoformat(),
+        "items": lines,
+        "total": str(total),
+    }
+    if customer_profile is not None:
+        payload.update(
+            {
+                "customer_name": customer_profile.full_name,
+                "customer_email": customer_profile.email,
+                "customer_phone": customer_profile.phone,
+            }
+        )
+    return payload
+
+
+class CustomerMedicineCatalog(APIView):
+    permission_classes = [IsCustomer]
+
+    def get(self, request):
+        medicines = Medicine.objects.filter(
+            expiry_date__gte=timezone.localdate(), stock__gt=0
+        ).order_by("name")
+        return Response(
+            [
+                {
+                    "id": medicine.id,
+                    "name": medicine.name,
+                    "price": str(medicine.price),
+                    "available": True,
+                }
+                for medicine in medicines
+            ]
+        )
+
+
+class CustomerOrderList(APIView):
+    permission_classes = [IsCustomer]
+
+    def get(self, request):
+        orders = CustomerOrder.objects.filter(
+            customer_id=request.user.id
+        ).prefetch_related("items__medicine")
+        return Response([order_payload(order) for order in orders])
+
+    def post(self, request):
+        serializer = CustomerOrderCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        items = serializer.validated_data["items"]
+        wanted = {item["medicine_id"]: item["qty"] for item in items}
+        today = timezone.localdate()
+        now = timezone.now()
+
+        with transaction.atomic():
+            medicines = {
+                medicine.id: medicine
+                for medicine in Medicine.objects.select_for_update().filter(
+                    id__in=wanted
+                )
+            }
+            missing = sorted(set(wanted) - set(medicines))
+            if missing:
+                return Response(
+                    {"detail": f"Medicine not found: {missing}"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            unavailable = []
+            for medicine_id, qty in wanted.items():
+                medicine = medicines[medicine_id]
+                if medicine.expiry_date < today:
+                    reason = "expired"
+                elif medicine.stock < qty:
+                    reason = "out of stock" if medicine.stock == 0 else (
+                        f"only {medicine.stock} in stock"
+                    )
+                else:
+                    continue
+                unavailable.append(
+                    {
+                        "medicine_id": medicine_id,
+                        "name": medicine.name,
+                        "error": reason,
+                    }
+                )
+            if unavailable:
+                return Response(
+                    {"detail": "Some requested medicines are unavailable.",
+                     "errors": unavailable},
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            order = CustomerOrder.objects.create(
+                id=uuid.uuid4(),
+                customer_id=request.user.id,
+                status="submitted",
+                customer_note=serializer.validated_data.get("customer_note", ""),
+                created_at=now,
+                updated_at=now,
+            )
+            CustomerOrderItem.objects.bulk_create(
+                [
+                    CustomerOrderItem(
+                        order=order,
+                        medicine=medicines[medicine_id],
+                        qty=qty,
+                        unit_price=medicines[medicine_id].price,
+                    )
+                    for medicine_id, qty in wanted.items()
+                ]
+            )
+
+        order = CustomerOrder.objects.prefetch_related("items__medicine").get(
+            pk=order.pk
+        )
+        return Response(order_payload(order), status=status.HTTP_201_CREATED)
+
+
+class CustomerOrderCancel(APIView):
+    permission_classes = [IsCustomer]
+
+    def post(self, request, pk):
+        with transaction.atomic():
+            order = (
+                CustomerOrder.objects.select_for_update()
+                .filter(pk=pk, customer_id=request.user.id)
+                .first()
+            )
+            if order is None:
+                return Response(
+                    {"detail": "Order not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            if order.status not in ("submitted", "ready_for_pickup"):
+                return Response(
+                    {"detail": "This order can no longer be cancelled."},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            if order.status == "ready_for_pickup":
+                items = list(
+                    CustomerOrderItem.objects.filter(order=order).order_by(
+                        "medicine_id"
+                    )
+                )
+                medicines = {
+                    medicine.id: medicine
+                    for medicine in Medicine.objects.select_for_update()
+                    .filter(id__in=[item.medicine_id for item in items])
+                    .order_by("id")
+                }
+                for item in items:
+                    medicine = medicines[item.medicine_id]
+                    medicine.stock += item.qty
+                    medicine.save(update_fields=["stock"])
+            order.status = "cancelled"
+            order.updated_at = timezone.now()
+            order.save(update_fields=["status", "updated_at"])
+
+        order = CustomerOrder.objects.prefetch_related("items__medicine").get(
+            pk=order.pk
+        )
+        return Response(order_payload(order))
+
+
+class StaffOrderQueue(APIView):
+    permission_classes = [IsStaff]
+
+    def get(self, request):
+        orders = list(
+            CustomerOrder.objects.prefetch_related("items__medicine").all()
+        )
+        profiles = {
+            str(profile.id): profile
+            for profile in Profile.objects.filter(
+                id__in=[order.customer_id for order in orders]
+            )
+        }
+        return Response(
+            [
+                order_payload(order, profiles.get(str(order.customer_id)))
+                for order in orders
+            ]
+        )
+
+    def patch(self, request, pk):
+        action = request.data.get("action")
+        note = request.data.get("note", "")
+        if action not in ("approve", "decline", "complete", "cancel"):
+            return Response(
+                {"detail": "action must be approve, decline, complete, or cancel."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not isinstance(note, str) or len(note) > 500:
+            return Response(
+                {"detail": "note must be text of at most 500 characters."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        note = note.strip()
+        if action == "approve" and request.data.get("prescription_checked") is not True:
+            return Response(
+                {"detail": "Confirm the prescription review before approving."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if action == "decline" and not note:
+            return Response(
+                {"detail": "A reason is required when declining an order."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            order = CustomerOrder.objects.select_for_update().filter(pk=pk).first()
+            if order is None:
+                return Response(
+                    {"detail": "Order not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            now = timezone.now()
+            if action in ("approve", "decline"):
+                if order.status != "submitted":
+                    return Response(
+                        {"detail": "Only submitted orders can be reviewed."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                if action == "decline":
+                    order.status = "declined"
+                    order.staff_note = note
+                else:
+                    items = list(
+                        CustomerOrderItem.objects.filter(order=order).order_by(
+                            "medicine_id"
+                        )
+                    )
+                    medicines = {
+                        medicine.id: medicine
+                        for medicine in Medicine.objects.select_for_update()
+                        .filter(id__in=[item.medicine_id for item in items])
+                        .order_by("id")
+                    }
+                    unavailable = []
+                    for item in items:
+                        medicine = medicines[item.medicine_id]
+                        if medicine.expiry_date < timezone.localdate():
+                            reason = "expired"
+                        elif medicine.stock < item.qty:
+                            reason = (
+                                "out of stock"
+                                if medicine.stock == 0
+                                else f"only {medicine.stock} in stock"
+                            )
+                        else:
+                            continue
+                        unavailable.append(
+                            {
+                                "medicine_id": medicine.id,
+                                "name": medicine.name,
+                                "error": reason,
+                            }
+                        )
+                    if unavailable:
+                        return Response(
+                            {
+                                "detail": "The order cannot be approved because "
+                                "some requested medicines are unavailable.",
+                                "errors": unavailable,
+                            },
+                            status=status.HTTP_409_CONFLICT,
+                        )
+                    for item in items:
+                        medicine = medicines[item.medicine_id]
+                        medicine.stock -= item.qty
+                        medicine.save(update_fields=["stock"])
+                        item.unit_price = medicine.price
+                        item.save(update_fields=["unit_price"])
+                    order.status = "ready_for_pickup"
+                    order.pharmacist_id = request.user.id
+                    order.staff_note = note
+            elif action == "complete":
+                if order.status != "ready_for_pickup":
+                    return Response(
+                        {"detail": "Only approved orders can be completed."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                items = list(
+                    CustomerOrderItem.objects.filter(order=order).select_related(
+                        "medicine"
+                    )
+                )
+                receipt_id = uuid.uuid4()
+                Sale.objects.bulk_create(
+                    [
+                        Sale(
+                            receipt_id=receipt_id,
+                            medicine=item.medicine,
+                            qty=item.qty,
+                            seller_id=request.user.id,
+                            unit_price=item.unit_price,
+                            sold_at=now,
+                        )
+                        for item in items
+                    ]
+                )
+                order.status = "completed"
+                if note:
+                    order.staff_note = note
+            else:
+                if order.status not in ("submitted", "ready_for_pickup"):
+                    return Response(
+                        {"detail": "This order can no longer be cancelled."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                if order.status == "ready_for_pickup":
+                    items = list(
+                        CustomerOrderItem.objects.filter(order=order).order_by(
+                            "medicine_id"
+                        )
+                    )
+                    medicines = {
+                        medicine.id: medicine
+                        for medicine in Medicine.objects.select_for_update()
+                        .filter(id__in=[item.medicine_id for item in items])
+                        .order_by("id")
+                    }
+                    for item in items:
+                        medicine = medicines[item.medicine_id]
+                        medicine.stock += item.qty
+                        medicine.save(update_fields=["stock"])
+                order.status = "cancelled"
+                if note:
+                    order.staff_note = note
+
+            order.updated_at = now
+            order.save(
+                update_fields=[
+                    "status",
+                    "staff_note",
+                    "pharmacist_id",
+                    "updated_at",
+                ]
+            )
+
+        order = CustomerOrder.objects.prefetch_related("items__medicine").get(
+            pk=order.pk
+        )
+        profile = Profile.objects.filter(id=order.customer_id).first()
+        return Response(order_payload(order, profile))

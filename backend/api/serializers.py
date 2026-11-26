@@ -70,3 +70,23 @@ class ProfileUpdateSerializer(serializers.Serializer):
                 "Provide a full name or phone number to update."
             )
         return attrs
+
+
+class CustomerOrderItemInputSerializer(serializers.Serializer):
+    medicine_id = serializers.IntegerField(min_value=1)
+    qty = serializers.IntegerField(min_value=1, max_value=100)
+
+
+class CustomerOrderCreateSerializer(serializers.Serializer):
+    items = CustomerOrderItemInputSerializer(many=True, allow_empty=False)
+    customer_note = serializers.CharField(
+        max_length=500, trim_whitespace=True, required=False, allow_blank=True
+    )
+
+    def validate_items(self, items):
+        medicine_ids = [item["medicine_id"] for item in items]
+        if len(medicine_ids) != len(set(medicine_ids)):
+            raise serializers.ValidationError(
+                "Each medicine may appear only once in an order."
+            )
+        return items

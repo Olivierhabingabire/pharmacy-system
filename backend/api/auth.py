@@ -21,7 +21,7 @@ class SupabaseUser:
         self.id = id
         self.pk = id
         self.email = email
-        self.role = role  # "pharmacist", "manager", or None if no profile row
+        self.role = role
         self.full_name = full_name
         self.is_active = is_active
         self.phone = phone
@@ -54,6 +54,25 @@ class SupabaseAuthentication(authentication.BaseAuthentication):
             if isinstance(user_metadata, dict)
             else ""
         )
+        account_type = (
+            user_metadata.get("account_type", "")
+            if isinstance(user_metadata, dict)
+            else ""
+        )
+        if profile is None and account_type == "customer":
+            profile, _ = Profile.objects.get_or_create(
+                id=user_id,
+                defaults={
+                    "role": "customer",
+                    "email": claims.get("email", ""),
+                    "full_name": token_name,
+                    "phone": (
+                        user_metadata.get("phone", "")
+                        if isinstance(user_metadata, dict)
+                        else ""
+                    ),
+                },
+            )
         user = SupabaseUser(
             id=user_id,
             email=claims.get("email", ""),

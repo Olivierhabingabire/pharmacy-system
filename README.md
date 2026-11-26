@@ -83,10 +83,15 @@ Three rules explain the design:
 |---|---|
 | pharmacist | Read medicines and complete sales |
 | manager | Everything a pharmacist can, plus create, edit and delete medicines, read the sales report, and manage pharmacist access |
+| customer | Browse available medicines, submit pickup requests, and track their own orders |
 
 Managers set a shared pharmacist registration code in **Staff access**. A new pharmacist signs up with their name, email, password, and that code. The backend verifies the code before granting the pharmacist role. Managers can see the full roster and deactivate or restore a pharmacist's access from the same screen. Deactivation preserves the account and historical sales while preventing access to staff endpoints. All signed-in users can open **My profile** to update their name and phone number; email changes use Supabase's email confirmation flow. Role and account status are read-only, and phone numbers are stored as unverified contact information.
 
 The registration code is stored as a password hash and can be changed by a manager at any time. Changing it only affects future registrations. To update an existing database for pharmacist access management and profile phone numbers, run the current `database/registration.sql` in the Supabase SQL Editor; it adds any missing profile columns safely.
+
+Customers can create an account from **Order as a customer** on the landing page or the customer link on the sign-in screen; no staff code is needed. Supabase email confirmation applies according to the project's Auth settings. Customers can see available medicine and current prices, then submit requests for pharmacy pickup. Requests do not reserve stock or count as sales. A pharmacist must review each request, check any prescription requirements, and approve it before stock is reserved. The sale is recorded only when the pharmacist marks the order collected. Customers and staff can cancel pending or approved requests; cancelling an approved request releases its reserved stock.
+
+For an existing database, run the current `database/registration.sql` to add the customer role and order tables before deploying the customer portal. On new databases, `database/schema.sql` includes the same tables. The backend remains the only database client; the customer portal does not access Supabase tables directly.
 
 ## Run it locally
 
@@ -97,7 +102,7 @@ Python 3.12 or newer, Node.js 20.9 or newer, Git, and a free Supabase project.
 ### 1. Database
 
 1. In your Supabase project, find the **Project URL** and the **Publishable key** (Project Settings, API Keys), and the **Session pooler** connection details (the green **Connect** button).
-2. For a new database, open the **SQL Editor** and run `database/schema.sql`, then `database/seed.sql`. For an existing Pharmacy Desk database, run the current `database/registration.sql`; it is safe to run again and adds any missing registration, staff-access, and profile fields. Do not rerun the schema or seed scripts.
+2. For a new database, open the **SQL Editor** and run `database/schema.sql`, then `database/seed.sql`. For an existing Pharmacy Desk database, run the current `database/registration.sql`; it is safe to run again and adds any missing registration, staff-access, profile, customer-role, and order fields. Do not rerun the schema or seed scripts.
 3. Under **Authentication, Users**, create the first manager (tick **Auto Confirm User**). Copy their UID and insert their manager profile:
 
    ```sql

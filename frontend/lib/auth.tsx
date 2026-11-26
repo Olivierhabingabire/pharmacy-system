@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { API_URL } from "./api";
 import { supabase } from "./supabase";
 
-export type Role = "pharmacist" | "manager" | null;
+export type Role = "pharmacist" | "manager" | "customer" | null;
 export type AuthUser = {
   id: string;
   email: string;

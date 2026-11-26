@@ -3,6 +3,9 @@ from django.urls import path
 from .views import (
     ActivatePharmacist,
     Analytics,
+    CustomerMedicineCatalog,
+    CustomerOrderCancel,
+    CustomerOrderList,
     MedicineDetail,
     MedicineList,
     Me,
@@ -12,6 +15,7 @@ from .views import (
     RegisterPharmacist,
     RegistrationCode,
     SaleCreate,
+    StaffOrderQueue,
     ValidateRegistrationCode,
 )
 
@@ -19,6 +23,11 @@ urlpatterns = [
     path("medicines/", MedicineList.as_view()),
     path("medicines/<int:pk>/", MedicineDetail.as_view()),
     path("sales/", SaleCreate.as_view()),
+    path("customer/medicines/", CustomerMedicineCatalog.as_view()),
+    path("customer/orders/", CustomerOrderList.as_view()),
+    path("customer/orders/<uuid:pk>/cancel/", CustomerOrderCancel.as_view()),
+    path("staff/orders/", StaffOrderQueue.as_view()),
+    path("staff/orders/<uuid:pk>/", StaffOrderQueue.as_view()),
     path("analytics/", Analytics.as_view()),
     path("me/", Me.as_view()),
     path("profile/", ProfileView.as_view()),

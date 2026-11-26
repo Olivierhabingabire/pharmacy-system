@@ -120,13 +120,17 @@ export default function LandingPage() {
         ? "/dashboard"
         : state.user.role === "pharmacist"
           ? "/sales"
-          : "/login"
+          : state.user.role === "customer"
+            ? "/customer/catalog"
+            : "/login"
       : "/login";
   const actionLabel =
     state.status !== "signedIn"
       ? "Staff sign in"
       : state.user.role === null
         ? "Activate account"
+        : state.user.role === "customer"
+          ? "Browse medicines"
         : "Open your workspace";
 
   return (
@@ -217,6 +221,16 @@ export default function LandingPage() {
               >
                 Explore features
               </a>
+              <Link
+                href={
+                  state.status === "signedIn" && state.user.role === "customer"
+                    ? "/customer/catalog"
+                    : "/customer/register"
+                }
+                className="inline-flex items-center gap-2 rounded-full border border-[#f2a4cb] bg-white/70 px-5 py-3.5 text-sm font-semibold text-[#b9005a] transition hover:bg-white"
+              >
+                Order as a customer
+              </Link>
             </div>
             <div className="mt-7 flex flex-wrap gap-x-6 gap-y-2 border-t border-[#f3c5db] pt-5 text-xs font-medium text-slate-600 sm:text-sm">
               {["Live stock visibility", "Expiry-aware checkout"].map((item) => (

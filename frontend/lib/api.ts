@@ -11,6 +11,43 @@ export type Medicine = {
   expiry_date: string;
 };
 
+export type CustomerMedicine = {
+  id: number;
+  name: string;
+  price: string;
+  available: boolean;
+};
+
+export type OrderStatus =
+  | "submitted"
+  | "ready_for_pickup"
+  | "declined"
+  | "completed"
+  | "cancelled";
+
+export type OrderItem = {
+  medicine_id: number;
+  name: string;
+  qty: number;
+  unit_price: string;
+  line_total: string;
+};
+
+export type PharmacyOrder = {
+  id: string;
+  status: OrderStatus;
+  customer_note: string;
+  staff_note: string;
+  pharmacist_id: string | null;
+  created_at: string;
+  updated_at: string;
+  items: OrderItem[];
+  total: string;
+  customer_name?: string;
+  customer_email?: string;
+  customer_phone?: string;
+};
+
 export type DailyRevenue = {
   date: string;
   revenue: string;

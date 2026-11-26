@@ -1,14 +1,21 @@
 import uuid
 from datetime import timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 
 from django.contrib.auth.hashers import check_password, make_password
 from django.utils import timezone
 from rest_framework.test import APITestCase
 from unittest.mock import patch
 
-from .auth import SupabaseUser
-from .models import Medicine, Profile, RegistrationSetting, Sale
+from .auth import SupabaseAuthentication, SupabaseUser
+from .models import (
+    CustomerOrder,
+    Medicine,
+    Profile,
+    RegistrationSetting,
+    Sale,
+)
 from .supabase_admin import SupabaseAdminError, create_confirmed_user
 
 
@@ -39,6 +46,18 @@ class PharmacyApiTests(APITestCase):
 
     def sell(self, items):
         return self.client.post("/api/sales/", {"items": items}, format="json")
+
+    def request_order(self, customer, items=None):
+        self.client.force_authenticate(user=customer)
+        return self.client.post(
+            "/api/customer/orders/",
+            {
+                "items": items
+                or [{"medicine_id": self.good.id, "qty": 2}],
+                "customer_note": "Please call before pickup.",
+            },
+            format="json",
+        )
 
     # 1. Success: a valid sale returns 201, a receipt, and lowers stock
     def test_sale_success(self):
@@ -505,3 +524,161 @@ class PharmacyApiTests(APITestCase):
         payload = admin_request.call_args.args[2]
         self.assertTrue(payload["email_confirm"])
         self.assertEqual(payload["email"], "new.pharmacist@example.com")
+
+    def test_customer_order_is_not_a_sale_until_pickup(self):
+        customer = make_user("customer")
+        Profile.objects.create(
+            id=customer.id,
+            role="customer",
+            email=customer.email,
+            full_name="Customer Name",
+            phone="+250700000000",
+        )
+        response = self.request_order(customer)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["status"], "submitted")
+        self.assertEqual(response.data["total"], "1000.00")
+        self.assertEqual(Sale.objects.count(), 0)
+        self.good.refresh_from_db()
+        self.assertEqual(self.good.stock, 10)
+
+        self.client.force_authenticate(user=make_user("pharmacist"))
+        queue = self.client.get("/api/staff/orders/")
+        self.assertEqual(queue.status_code, 200)
+        self.assertEqual(queue.data[0]["customer_email"], customer.email)
+
+        order_id = response.data["id"]
+        approval_without_review = self.client.patch(
+            f"/api/staff/orders/{order_id}/",
+            {"action": "approve"},
+            format="json",
+        )
+        self.assertEqual(approval_without_review.status_code, 400)
+        self.assertEqual(Sale.objects.count(), 0)
+
+        approved = self.client.patch(
+            f"/api/staff/orders/{order_id}/",
+            {"action": "approve", "prescription_checked": True},
+            format="json",
+        )
+        self.assertEqual(approved.status_code, 200)
+        self.assertEqual(approved.data["status"], "ready_for_pickup")
+        self.good.refresh_from_db()
+        self.assertEqual(self.good.stock, 8)
+        self.assertEqual(Sale.objects.count(), 0)
+
+        completed = self.client.patch(
+            f"/api/staff/orders/{order_id}/",
+            {"action": "complete"},
+            format="json",
+        )
+        self.assertEqual(completed.status_code, 200)
+        self.assertEqual(completed.data["status"], "completed")
+        self.assertEqual(Sale.objects.count(), 1)
+        self.assertEqual(Sale.objects.first().qty, 2)
+
+    def test_customer_cannot_access_staff_orders_or_another_customers_order(self):
+        customer = make_user("customer")
+        other_customer = make_user("customer")
+        response = self.request_order(customer)
+        self.assertEqual(response.status_code, 201)
+
+        self.client.force_authenticate(user=other_customer)
+        own_orders = self.client.get("/api/customer/orders/")
+        self.assertEqual(own_orders.status_code, 200)
+        self.assertEqual(own_orders.data, [])
+        self.assertEqual(self.client.get("/api/staff/orders/").status_code, 403)
+        missing = self.client.post(
+            f"/api/customer/orders/{response.data['id']}/cancel/",
+            format="json",
+        )
+        self.assertEqual(missing.status_code, 404)
+
+    def test_customer_order_rejects_unavailable_or_duplicate_medicines(self):
+        customer = make_user("customer")
+        unavailable = self.request_order(
+            customer, [{"medicine_id": self.empty.id, "qty": 1}]
+        )
+        self.assertEqual(unavailable.status_code, 409)
+
+        duplicate = self.client.post(
+            "/api/customer/orders/",
+            {
+                "items": [
+                    {"medicine_id": self.good.id, "qty": 1},
+                    {"medicine_id": self.good.id, "qty": 1},
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(duplicate.status_code, 400)
+        self.assertEqual(CustomerOrder.objects.count(), 0)
+
+    def test_cancelling_approved_order_releases_stock_without_sale(self):
+        customer = make_user("customer")
+        requested = self.request_order(customer)
+        self.assertEqual(requested.status_code, 201)
+        order_id = requested.data["id"]
+
+        self.client.force_authenticate(user=make_user("pharmacist"))
+        approved = self.client.patch(
+            f"/api/staff/orders/{order_id}/",
+            {"action": "approve", "prescription_checked": True},
+            format="json",
+        )
+        self.assertEqual(approved.status_code, 200)
+        self.good.refresh_from_db()
+        self.assertEqual(self.good.stock, 8)
+
+        self.client.force_authenticate(user=customer)
+        cancelled = self.client.post(
+            f"/api/customer/orders/{order_id}/cancel/",
+            format="json",
+        )
+        self.assertEqual(cancelled.status_code, 200)
+        self.assertEqual(cancelled.data["status"], "cancelled")
+        self.good.refresh_from_db()
+        self.assertEqual(self.good.stock, 10)
+        self.assertEqual(Sale.objects.count(), 0)
+
+    @patch("api.auth._jwks.get_signing_key_from_jwt")
+    @patch("api.auth.jwt.decode")
+    def test_auth_provisions_customer_but_never_self_assigns_staff_role(
+        self, decode, get_signing_key
+    ):
+        user_id = str(uuid.uuid4())
+        get_signing_key.return_value = SimpleNamespace(key="verified-key")
+        decode.return_value = {
+            "sub": user_id,
+            "email": "new.customer@example.com",
+            "user_metadata": {
+                "account_type": "customer",
+                "full_name": "New Customer",
+                "phone": "+250700000000",
+            },
+        }
+        request = SimpleNamespace(
+            headers={"Authorization": "Bearer verified-token"}
+        )
+
+        user, token = SupabaseAuthentication().authenticate(request)
+
+        profile = Profile.objects.get(id=user_id)
+        self.assertEqual(token, "verified-token")
+        self.assertEqual(user.role, "customer")
+        self.assertEqual(profile.email, "new.customer@example.com")
+        self.assertEqual(profile.full_name, "New Customer")
+        self.assertEqual(profile.phone, "+250700000000")
+
+        privileged_id = str(uuid.uuid4())
+        decode.return_value = {
+            "sub": privileged_id,
+            "email": "untrusted@example.com",
+            "user_metadata": {"account_type": "manager"},
+        }
+        request.headers = {"Authorization": "Bearer another-token"}
+        untrusted_user, _ = SupabaseAuthentication().authenticate(request)
+
+        self.assertIsNone(untrusted_user.role)
+        self.assertFalse(Profile.objects.filter(id=privileged_id).exists())

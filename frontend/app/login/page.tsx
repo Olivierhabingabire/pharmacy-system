@@ -52,6 +52,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (signedInRole === "manager") router.replace("/dashboard");
     if (signedInRole === "pharmacist") router.replace("/sales");
+    if (signedInRole === "customer") router.replace("/customer/catalog");
   }, [signedInRole, router]);
 
   async function activatePharmacist(
@@ -489,6 +490,15 @@ export default function LoginPage() {
                     >
                       Register with a manager code
                     </button>
+                  </p>
+                  <p className="mt-3 text-sm text-muted">
+                    Looking for medicine?{" "}
+                    <Link
+                      href="/customer/register"
+                      className="font-semibold text-[#d50068] hover:underline"
+                    >
+                      Create a customer account
+                    </Link>
                   </p>
                   <p className="mt-4 text-xs text-muted">
                     Forgot your password? Ask your manager to reset it.
