@@ -207,6 +207,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { state, signOut } = useAuth();
   const [open, setOpen] = useState(false);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
 
   const onLogin = pathname === "/login";
   const onLanding = pathname === "/";
@@ -338,7 +339,12 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#fffafd]">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-rule bg-white px-3 py-5 text-pine shadow-[4px_0_24px_rgba(80,20,50,0.03)] md:flex print:hidden">
+      <aside
+        id="desktop-navigation"
+        className={`fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-rule bg-white px-3 py-5 text-pine shadow-[4px_0_24px_rgba(80,20,50,0.03)] ${
+          desktopSidebarOpen ? "md:flex" : "md:hidden"
+        } print:hidden`}
+      >
         <div className="px-3 pb-7">
           <Brand />
         </div>
@@ -402,10 +408,26 @@ function Shell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <div className="min-h-screen md:pl-60 print:pl-0">
-        <header className="sticky top-0 z-10 hidden items-center justify-end gap-3 border-b border-rule bg-white/95 px-5 py-3 text-pine shadow-sm backdrop-blur md:flex md:px-8 print:hidden">
-          <LanguageSelector />
-          <ProfileLink user={user} pathname={pathname} />
+      <div
+        className={`min-h-screen ${
+          desktopSidebarOpen ? "md:pl-60" : "md:pl-0"
+        } print:pl-0`}
+      >
+        <header className="sticky top-0 z-10 hidden items-center justify-between gap-3 border-b border-rule bg-white/95 px-5 py-3 text-pine shadow-sm backdrop-blur md:flex md:px-8 print:hidden">
+          <button
+            type="button"
+            onClick={() => setDesktopSidebarOpen((isOpen) => !isOpen)}
+            aria-label={t(desktopSidebarOpen ? "Close menu" : "Open menu")}
+            aria-expanded={desktopSidebarOpen}
+            aria-controls="desktop-navigation"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-slate-600 transition hover:bg-[#fff1f7] hover:text-[#c90062]"
+          >
+            <Menu className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <div className="flex items-center gap-3">
+            <LanguageSelector />
+            <ProfileLink user={user} pathname={pathname} />
+          </div>
         </header>
         {children}
         <CustomerSupportFooter />
