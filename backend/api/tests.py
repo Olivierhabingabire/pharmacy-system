@@ -281,6 +281,60 @@ class PharmacyApiTests(APITestCase):
         sale = self.sell([{"medicine_id": self.good.id, "qty": 1}])
         self.assertEqual(sale.status_code, 403)
 
+    def test_staff_can_view_and_update_own_profile(self):
+        user = make_user("pharmacist")
+        Profile.objects.create(
+            id=user.id,
+            role="pharmacist",
+            email=user.email,
+            full_name="Original Name",
+        )
+        self.client.force_authenticate(user=user)
+
+        profile = self.client.get("/api/profile/")
+        self.assertEqual(profile.status_code, 200)
+        self.assertEqual(profile.data["email"], user.email)
+        self.assertEqual(profile.data["role"], "pharmacist")
+        self.assertEqual(profile.data["phone"], "")
+        self.assertTrue(profile.data["is_active"])
+
+        updated = self.client.patch(
+            "/api/profile/",
+            {"full_name": "Updated Name", "phone": "+250 790 222 835"},
+            format="json",
+        )
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(updated.data["full_name"], "Updated Name")
+        self.assertEqual(updated.data["phone"], "+250 790 222 835")
+        stored_profile = Profile.objects.get(id=user.id)
+        self.assertEqual(stored_profile.full_name, "Updated Name")
+        self.assertEqual(stored_profile.phone, "+250 790 222 835")
+        self.assertEqual(stored_profile.role, "pharmacist")
+
+    def test_profile_role_and_email_are_not_editable_through_api(self):
+        user = make_user("manager")
+        profile = Profile.objects.create(
+            id=user.id,
+            role="manager",
+            email=user.email,
+            full_name="Manager",
+        )
+        self.client.force_authenticate(user=user)
+
+        response = self.client.patch(
+            "/api/profile/",
+            {"role": "pharmacist", "email": "other@example.com"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        profile.refresh_from_db()
+        self.assertEqual(profile.role, "manager")
+        self.assertEqual(profile.email, user.email)
+
+    def test_profile_requires_staff_authentication(self):
+        response = self.client.get("/api/profile/")
+        self.assertEqual(response.status_code, 401)
+
     def test_staff_access_rejects_invalid_status_and_non_pharmacist(self):
         pharmacist_id = uuid.uuid4()
         Profile.objects.create(

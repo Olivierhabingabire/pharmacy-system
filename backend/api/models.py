@@ -39,6 +39,7 @@ class Profile(models.Model):
     email = models.EmailField(default="", blank=True)
     full_name = models.TextField(default="", blank=True)
     is_active = models.BooleanField(default=True)
+    phone = models.CharField(max_length=32, default="", blank=True)
 
     class Meta:
         managed = False

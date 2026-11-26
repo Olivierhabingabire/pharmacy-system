@@ -9,6 +9,7 @@ import {
   Menu,
   Pill,
   ReceiptText,
+  UserRound,
   Users,
   X,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const nav = [
   { href: "/staff-access", label: "Staff access", icon: Users, managerOnly: true },
   { href: "/sales", label: "New sale", icon: ReceiptText, managerOnly: false },
   { href: "/medicines", label: "Medicines", icon: Pill, managerOnly: false },
+  { href: "/profile", label: "My profile", icon: UserRound, managerOnly: false },
 ];
 
 const managerOnlyPaths = ["/dashboard", "/staff-access"];

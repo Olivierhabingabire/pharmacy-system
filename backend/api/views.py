@@ -19,6 +19,7 @@ from .permissions import IsManager, IsStaff, ManagerCanWrite
 from .serializers import (
     ActivatePharmacistSerializer,
     MedicineSerializer,
+    ProfileUpdateSerializer,
     RegistrationCodeSerializer,
     RegisterPharmacistSerializer,
     SaleRequestSerializer,
@@ -231,6 +232,64 @@ class Me(APIView):
                 "role": request.user.role,
                 "full_name": request.user.full_name,
                 "is_active": request.user.is_active,
+                "phone": request.user.phone,
+            }
+        )
+
+
+class ProfileView(APIView):
+    permission_classes = [IsStaff]
+
+    def get(self, request):
+        profile = Profile.objects.get(id=request.user.id)
+        if profile.email != request.user.email:
+            profile.email = request.user.email
+            profile.save(update_fields=["email"])
+        return Response(
+            {
+                "id": str(profile.id),
+                "email": request.user.email,
+                "full_name": profile.full_name,
+                "role": profile.role,
+                "is_active": profile.is_active,
+                "phone": profile.phone,
+            }
+        )
+
+    def patch(self, request):
+        if not hasattr(request.data, "keys"):
+            return Response(
+                {"detail": "Provide profile fields as a JSON object."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        editable_fields = {"full_name", "phone"}
+        unsupported_fields = set(request.data) - editable_fields
+        if unsupported_fields:
+            return Response(
+                {
+                    "detail": (
+                        "Only full_name and phone can be updated here. "
+                        "Role is managed by your pharmacy manager; change email "
+                        "through the account confirmation flow."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = ProfileUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        profile = Profile.objects.get(id=request.user.id)
+        profile.email = request.user.email
+        for field, value in serializer.validated_data.items():
+            setattr(profile, field, value)
+        profile.save(update_fields=["email", *serializer.validated_data])
+        return Response(
+            {
+                "id": str(profile.id),
+                "email": request.user.email,
+                "full_name": profile.full_name,
+                "role": profile.role,
+                "is_active": profile.is_active,
+                "phone": profile.phone,
             }
         )
 

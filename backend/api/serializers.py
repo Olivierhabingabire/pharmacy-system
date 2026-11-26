@@ -54,3 +54,19 @@ class RegisterPharmacistSerializer(RegistrationCodeSerializer):
     email = serializers.EmailField(max_length=254)
     password = serializers.CharField(min_length=6, max_length=128, write_only=True)
     full_name = serializers.CharField(max_length=200, trim_whitespace=True)
+
+
+class ProfileUpdateSerializer(serializers.Serializer):
+    full_name = serializers.CharField(
+        max_length=200, trim_whitespace=True, required=False
+    )
+    phone = serializers.CharField(
+        max_length=32, trim_whitespace=True, allow_blank=True, required=False
+    )
+
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError(
+                "Provide a full name or phone number to update."
+            )
+        return attrs

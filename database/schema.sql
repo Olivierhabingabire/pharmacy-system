@@ -6,7 +6,8 @@ create table profiles (
   role text not null check (role in ('pharmacist', 'manager')),
   email text not null default '',
   full_name text not null default '',
-  is_active boolean not null default true
+  is_active boolean not null default true,
+  phone text not null default ''
 );
 
 create table registration_settings (

@@ -4,7 +4,8 @@
 alter table profiles
   add column if not exists email text not null default '',
   add column if not exists full_name text not null default '',
-  add column if not exists is_active boolean not null default true;
+  add column if not exists is_active boolean not null default true,
+  add column if not exists phone text not null default '';
 
 create table if not exists registration_settings (
   id smallint primary key check (id = 1),

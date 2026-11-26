@@ -12,6 +12,7 @@ export type AuthUser = {
   full_name: string;
   role: Role;
   is_active: boolean;
+  phone: string;
 };
 
 export type AuthState =
@@ -20,7 +21,10 @@ export type AuthState =
   | { status: "error"; message: string }
   | { status: "signedIn"; user: AuthUser };
 
-type MeUser = Omit<AuthUser, "is_active"> & { is_active?: boolean };
+type MeUser = Omit<AuthUser, "is_active" | "phone"> & {
+  is_active?: boolean;
+  phone?: string;
+};
 type Me = { userId: string; user?: AuthUser; error?: string };
 
 const AuthContext = createContext<{
@@ -83,7 +87,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const user = (await response.json()) as MeUser;
         setMe({
           userId,
-          user: { ...user, is_active: user.is_active ?? true },
+          user: {
+            ...user,
+            is_active: user.is_active ?? true,
+            phone: user.phone ?? "",
+          },
         });
       })
       .catch((error: Error) => {
