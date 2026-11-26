@@ -121,7 +121,7 @@ function MedicinesView() {
         {canEdit && (
           <button
             onClick={() => setAdding(true)}
-            className="inline-flex items-center gap-2 rounded-md bg-pine px-4 py-2 text-sm font-medium text-white hover:bg-[#123a32]"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#e90074] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-pink-200 transition hover:bg-[#c90062]"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             Add medicine
@@ -168,8 +168,8 @@ function MedicinesView() {
                   aria-pressed={active}
                   className={`rounded-full border px-3 py-1 text-sm ${
                     active
-                      ? "border-pine bg-pine text-white"
-                      : "border-rule bg-surface hover:border-pine/40"
+                      ? "border-[#e90074] bg-[#e90074] text-white shadow-sm shadow-pink-200"
+                      : "border-rule bg-surface hover:border-[#e90074]/40 hover:bg-[#fff5fa]"
                   }`}
                 >
                   {f.label}{" "}
@@ -196,7 +196,7 @@ function MedicinesView() {
               }}
               placeholder="Search by name"
               aria-label="Search by name"
-              className="w-full rounded-md border border-rule bg-surface py-2 pl-9 pr-3 text-sm placeholder:text-muted focus:border-cross focus:outline-none focus:ring-2 focus:ring-cross/30"
+              className="w-full rounded-xl border border-rule bg-surface py-2.5 pl-9 pr-3 text-sm placeholder:text-muted focus:border-cross focus:outline-none focus:ring-2 focus:ring-cross/20"
             />
           </div>
 
@@ -221,7 +221,7 @@ function MedicinesView() {
             </div>
           ) : (
             <>
-              <div className="mt-4 overflow-x-auto rounded-lg border border-rule bg-surface">
+              <div className="mt-4 overflow-x-auto rounded-2xl border border-rule bg-surface shadow-sm">
                 <table className="w-full text-left text-sm">
                   <thead className="border-b border-rule text-muted">
                     <tr>
@@ -238,7 +238,7 @@ function MedicinesView() {
                     {visible.map((m) => {
                       const b = medicineStatus(m);
                       return (
-                        <tr key={m.id} className="hover:bg-paper">
+                        <tr key={m.id} className="transition-colors hover:bg-[#fff5fa]">
                           <td className="px-4 py-3">
                             <Link
                               href={`/medicines/${m.id}`}

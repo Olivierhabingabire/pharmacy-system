@@ -32,20 +32,20 @@ function Brand() {
   return (
     <div className="flex items-center gap-2.5">
       <span
-        className="grid h-8 w-8 place-items-center rounded-md bg-cross"
+        className="grid h-9 w-9 place-items-center rounded-xl bg-[#e90074] text-white shadow-sm shadow-pink-200"
         aria-hidden="true"
       >
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
           <path
             d="M12 4v16M4 12h16"
-            stroke="#0c2a24"
+            stroke="currentColor"
             strokeWidth="3.4"
             strokeLinecap="round"
           />
         </svg>
       </span>
-      <span className="text-[15px] font-semibold tracking-tight">
-        Pharmacy Desk
+      <span className="text-[15px] font-bold tracking-tight text-pine">
+        Pharmacy <span className="text-[#e90074]">Desk</span>
       </span>
     </div>
   );
@@ -73,10 +73,10 @@ function Nav({
                   href={href}
                   onClick={onNavigate}
                   aria-current={active ? "page" : undefined}
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium ${
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
                     active
-                      ? "bg-white/12 text-white"
-                      : "text-white/70 hover:bg-white/6 hover:text-white"
+                      ? "bg-[#fde2f0] text-[#c90062]"
+                      : "text-slate-600 hover:bg-[#fff1f7] hover:text-[#c90062]"
                   }`}
                 >
                   <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
@@ -93,14 +93,16 @@ function Nav({
 function Account({ user }: { user: AuthUser }) {
   const { signOut } = useAuth();
   return (
-    <div className="border-t border-white/10 px-3 pt-4">
-      <p className="truncate text-sm font-medium" title={user.email}>
+    <div className="border-t border-rule px-2 pt-4">
+      <p className="truncate text-sm font-semibold text-pine" title={user.email}>
         {user.email}
       </p>
-      <p className="mt-0.5 text-xs capitalize text-white/60">{user.role}</p>
+      <p className="mt-1 inline-flex rounded-full bg-[#fde2f0] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#c90062]">
+        {user.role}
+      </p>
       <button
         onClick={signOut}
-        className="mt-3 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-white/70 hover:bg-white/6 hover:text-white"
+        className="mt-3 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-slate-600 transition hover:bg-[#fff1f7] hover:text-[#c90062]"
       >
         <LogOut className="h-4 w-4" aria-hidden="true" />
         Sign out
@@ -112,7 +114,7 @@ function Account({ user }: { user: AuthUser }) {
 function Splash({ children }: { children?: React.ReactNode }) {
   return (
     <>
-      <div className="grid min-h-screen place-items-center px-6">
+      <div className="grid min-h-screen place-items-center bg-[#fffafd] px-6">
         <div className="max-w-sm text-center">
           {children ?? <p className="text-sm text-muted">Loading…</p>}
         </div>
@@ -183,7 +185,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <div className="mt-4 flex justify-center gap-3">
           <button
             onClick={() => window.location.reload()}
-            className="rounded-md bg-pine px-4 py-2 text-sm font-medium text-white"
+            className="rounded-xl bg-[#e90074] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#c90062]"
           >
             Try again
           </button>
@@ -217,25 +219,28 @@ function Shell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#fffafd]">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col bg-pine px-3 py-5 text-white md:flex print:hidden">
-        <div className="px-3 pb-6">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-rule bg-white px-3 py-5 text-pine shadow-[4px_0_24px_rgba(80,20,50,0.03)] md:flex print:hidden">
+        <div className="px-3 pb-7">
           <Brand />
         </div>
+        <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+          Workspace
+        </p>
         <Nav pathname={pathname} isManager={isManager} />
-        <div className="mt-auto">
+        <div className="mt-auto px-1">
           <Account user={user} />
         </div>
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between bg-pine px-4 py-3 text-white md:hidden print:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-rule bg-white px-4 py-3 text-pine shadow-sm md:hidden print:hidden">
         <Brand />
         <button
           onClick={() => setOpen(true)}
           aria-label="Open menu"
-          className="rounded-md p-1.5 hover:bg-white/10"
+          className="rounded-lg p-2 text-[#c90062] hover:bg-[#fff1f7]"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -249,30 +254,33 @@ function Shell({ children }: { children: React.ReactNode }) {
             onClick={() => setOpen(false)}
             aria-label="Close menu"
           />
-          <aside className="absolute inset-y-0 left-0 flex w-64 flex-col bg-pine px-3 py-5 text-white">
-            <div className="flex items-center justify-between px-3 pb-6">
+          <aside className="absolute inset-y-0 left-0 flex w-64 flex-col border-r border-rule bg-white px-3 py-5 text-pine shadow-xl">
+            <div className="flex items-center justify-between px-3 pb-7">
               <Brand />
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Close menu"
-                className="rounded-md p-1.5 hover:bg-white/10"
+                className="rounded-lg p-2 text-[#c90062] hover:bg-[#fff1f7]"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
+            <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+              Workspace
+            </p>
             <Nav
               pathname={pathname}
               isManager={isManager}
               onNavigate={() => setOpen(false)}
             />
-            <div className="mt-auto">
+            <div className="mt-auto px-1">
               <Account user={user} />
             </div>
           </aside>
         </div>
       )}
 
-      <div className="md:pl-60 print:pl-0">
+      <div className="min-h-screen md:pl-60 print:pl-0">
         {children}
         <CustomerSupportFooter />
       </div>

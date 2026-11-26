@@ -120,7 +120,7 @@ export default function MedicineForm({
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-md bg-pine px-4 py-2 text-sm font-medium text-white hover:bg-[#123a32] disabled:opacity-50"
+          className="rounded-xl bg-[#e90074] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#c90062] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Saving…" : submitLabel}
         </button>

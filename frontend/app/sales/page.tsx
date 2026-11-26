@@ -145,7 +145,7 @@ export default function SalesPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-8 pb-28 md:px-8 lg:pb-8">
-      <h1 className="text-2xl font-semibold tracking-tight">New sale</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-pine">New sale</h1>
       <p className="mt-1 text-sm text-muted">
         Search a medicine and press Enter to add it, or use the Add buttons.
       </p>
@@ -172,7 +172,7 @@ export default function SalesPage() {
               }}
               placeholder="Search by name"
               aria-label="Search medicines"
-              className="w-full rounded-md border border-rule bg-surface py-2.5 pl-9 pr-3 text-sm placeholder:text-muted focus:border-cross focus:outline-none focus:ring-2 focus:ring-cross/30"
+              className="w-full rounded-xl border border-rule bg-surface py-3 pl-9 pr-3 text-sm placeholder:text-muted focus:border-cross focus:outline-none focus:ring-2 focus:ring-cross/20"
             />
           </div>
 
@@ -203,7 +203,7 @@ export default function SalesPage() {
           )}
 
           {catalog.status === "ready" && (
-            <ul className="mt-4 divide-y divide-rule overflow-hidden rounded-lg border border-rule bg-surface lg:max-h-[calc(100vh-13rem)] lg:overflow-y-auto">
+            <ul className="mt-4 divide-y divide-rule overflow-hidden rounded-2xl border border-rule bg-surface shadow-sm lg:max-h-[calc(100vh-13rem)] lg:overflow-y-auto">
               {shown.length === 0 && (
                 <li className="p-6 text-center text-sm text-muted">
                   No medicine matches “{search}”.
@@ -216,7 +216,7 @@ export default function SalesPage() {
                 return (
                   <li
                     key={m.id}
-                    className="flex items-center justify-between gap-3 px-4 py-3"
+                    className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-[#fffafd]"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{m.name}</p>
@@ -240,7 +240,7 @@ export default function SalesPage() {
                         onClick={() => addOne(m)}
                         disabled={inCart >= m.stock}
                         aria-label={`Add ${m.name}`}
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-rule px-3 py-1.5 text-sm font-medium hover:border-pine hover:bg-pine hover:text-white disabled:opacity-40 disabled:hover:border-rule disabled:hover:bg-transparent disabled:hover:text-ink"
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#f1b1d0] px-3 py-1.5 text-sm font-semibold text-[#c90062] transition hover:border-[#e90074] hover:bg-[#e90074] hover:text-white disabled:opacity-40 disabled:hover:border-rule disabled:hover:bg-transparent disabled:hover:text-ink"
                       >
                         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                         {inCart > 0 ? `Add (${inCart})` : "Add"}
@@ -354,7 +354,7 @@ export default function SalesPage() {
           <button
             onClick={completeSale}
             disabled={submitting || lines.length === 0}
-            className="mt-4 w-full rounded-md bg-pine px-4 py-3 text-sm font-medium text-white hover:bg-[#123a32] disabled:opacity-40"
+            className="mt-4 w-full rounded-xl bg-[#e90074] px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-pink-200 transition hover:bg-[#c90062] disabled:cursor-not-allowed disabled:opacity-40"
           >
             {submitting ? "Processing…" : "Complete sale"}
           </button>
@@ -364,7 +364,7 @@ export default function SalesPage() {
       {lines.length > 0 && (
         <a
           href="#receipt"
-          className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between bg-pine px-5 py-4 text-white lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between bg-[#e90074] px-5 py-4 text-white shadow-[0_-8px_24px_rgba(201,0,98,0.18)] lg:hidden"
         >
           <span className="text-sm">
             {itemCount} {itemCount === 1 ? "item" : "items"}
@@ -381,7 +381,7 @@ export default function SalesPage() {
 function Paper({ children }: { children: React.ReactNode }) {
   return (
     <div className="font-mono">
-      <div className="border border-b-0 border-rule bg-surface px-5 pt-5">
+      <div className="rounded-t-2xl border border-b-0 border-rule bg-surface px-5 pt-5">
         {children}
       </div>
       <div className="receipt-edge" aria-hidden="true" />
@@ -465,7 +465,7 @@ function FinishedReceipt({
       <div className="mt-6 flex gap-3 print:hidden">
         <button
           onClick={onNewSale}
-          className="flex-1 rounded-md bg-pine px-4 py-2.5 text-sm font-medium text-white hover:bg-[#123a32]"
+          className="flex-1 rounded-xl bg-[#e90074] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#c90062]"
         >
           New sale
         </button>

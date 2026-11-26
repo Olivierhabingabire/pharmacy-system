@@ -63,7 +63,7 @@ export default function DashboardPage() {
         </div>
         <Link
           href="/sales"
-          className="rounded-md bg-pine px-4 py-2 text-sm font-medium text-white hover:bg-[#123a32]"
+          className="rounded-xl bg-[#e90074] px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-pink-200 transition hover:bg-[#c90062]"
         >
           New sale
         </Link>
@@ -114,7 +114,7 @@ function Overview({
 
   return (
     <>
-      <dl className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-rule bg-rule sm:grid-cols-4">
+      <dl className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-rule bg-rule shadow-sm sm:grid-cols-4">
         <Stat label="Revenue today" value={`${money(todayRow?.revenue ?? 0)} RWF`} />
         <Stat label="Receipts today" value={String(todayRow?.receipts ?? 0)} />
         <Stat label="Items sold today" value={String(todayRow?.items_sold ?? 0)} />
@@ -127,23 +127,23 @@ function Overview({
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-10">
-          <section aria-labelledby="revenue-heading">
-            <h2 id="revenue-heading" className="font-semibold">
+          <section aria-labelledby="revenue-heading" className="rounded-2xl border border-rule bg-white p-5 shadow-sm sm:p-6">
+            <h2 id="revenue-heading" className="font-semibold text-pine">
               Sales, last 7 days
             </h2>
             <RevenueBars days={days} />
           </section>
 
-          <section aria-labelledby="sellers-heading">
-            <h2 id="sellers-heading" className="font-semibold">
+          <section aria-labelledby="sellers-heading" className="rounded-2xl border border-rule bg-white p-5 shadow-sm sm:p-6">
+            <h2 id="sellers-heading" className="font-semibold text-pine">
               Best sellers
             </h2>
             <BestSellers sellers={analytics.best_sellers} />
           </section>
         </div>
 
-        <aside aria-labelledby="attention-heading" className="max-lg:order-first">
-          <h2 id="attention-heading" className="font-semibold">
+        <aside aria-labelledby="attention-heading" className="max-lg:order-first rounded-2xl border border-rule bg-white p-5 shadow-sm sm:p-6">
+          <h2 id="attention-heading" className="font-semibold text-pine">
             Needs attention
           </h2>
           <Attention
@@ -194,7 +194,7 @@ function Stat({
   tone?: "normal" | "alert";
 }) {
   return (
-    <div className="bg-surface p-4">
+    <div className="bg-surface p-5">
       <dt className="text-sm text-muted">{label}</dt>
       <dd
         className={`mt-1 text-2xl font-semibold tabular-nums ${

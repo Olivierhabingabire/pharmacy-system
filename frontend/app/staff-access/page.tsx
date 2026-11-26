@@ -121,7 +121,7 @@ export default function StaffAccessPage() {
   return (
     <main className="mx-auto max-w-5xl px-5 py-8 md:px-8">
       <header>
-        <p className="text-sm font-medium text-ok">MANAGER SETTINGS</p>
+        <p className="text-xs font-bold tracking-[0.16em] text-[#c90062]">MANAGER SETTINGS</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight">
           Staff access
         </h1>
@@ -152,10 +152,10 @@ export default function StaffAccessPage() {
 
       {state.status === "ready" && (
         <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <section className="rounded-xl border border-rule bg-surface p-5 sm:p-6">
+          <section className="rounded-2xl border border-rule bg-surface p-5 shadow-sm sm:p-6">
             <div className="flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-ok-bg">
-                <KeyRound className="h-5 w-5 text-ok" aria-hidden="true" />
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#fde2f0]">
+                <KeyRound className="h-5 w-5 text-[#d50068]" aria-hidden="true" />
               </span>
               <div>
                 <h2 className="font-semibold">Pharmacist registration code</h2>
@@ -245,7 +245,7 @@ export default function StaffAccessPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex items-center justify-center gap-2 rounded-lg bg-pine px-4 py-2.5 text-sm font-medium text-white hover:bg-[#123a32] disabled:opacity-50"
+                className="flex items-center justify-center gap-2 rounded-xl bg-[#e90074] px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-pink-200 transition hover:bg-[#c90062] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving && (
                   <LoaderCircle
@@ -265,11 +265,11 @@ export default function StaffAccessPage() {
             </p>
           </section>
 
-          <section className="rounded-xl border border-rule bg-surface p-5 sm:p-6">
+          <section className="rounded-2xl border border-rule bg-surface p-5 shadow-sm sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-paper">
-                  <Users className="h-5 w-5 text-pine" aria-hidden="true" />
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#fde2f0]">
+                  <Users className="h-5 w-5 text-[#d50068]" aria-hidden="true" />
                 </span>
                 <div>
                   <h2 className="font-semibold">Authorized pharmacists</h2>

@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --pine: #0c2a24;
-  --cross: #1fa67a;
-  --paper: #f2f4f1;
+  --pine: #17213a;
+  --cross: #e90074;
+  --paper: #fffafd;
   --surface: #ffffff;
-  --rule: #dbe0da;
-  --ink: #14211d;
-  --muted: #5d6b65;
+  --rule: #f0d7e4;
+  --ink: #17213a;
+  --muted: #667085;
   --red: #b42318;
   --red-bg: #fde8e6;
   --amber: #8a4b04;

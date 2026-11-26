@@ -45,14 +45,14 @@ export default function SlideOver({
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col bg-surface outline-none"
+        className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col border-l border-rule bg-surface shadow-2xl outline-none sm:rounded-l-2xl"
       >
-        <div className="flex items-center justify-between border-b border-rule px-5 py-4">
-          <h2 className="font-semibold">{title}</h2>
+        <div className="flex items-center justify-between border-b border-rule bg-[#fffafd] px-5 py-4">
+          <h2 className="font-semibold text-pine">{title}</h2>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-md p-1.5 hover:bg-paper"
+            className="rounded-lg p-2 text-[#c90062] hover:bg-[#fde2f0]"
           >
             <X className="h-5 w-5" />
           </button>
