@@ -185,7 +185,7 @@ def generate_gemini_answer(topic, language):
     if not api_key:
         raise AssistantConfigurationError
 
-    model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash").strip()
+    model = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite").strip()
     if not re.fullmatch(r"[A-Za-z0-9._-]+", model):
         raise AssistantConfigurationError
 
