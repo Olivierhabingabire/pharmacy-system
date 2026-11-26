@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import {
+  ArrowUpRight,
   CircleAlert,
   Copy,
   KeyRound,
@@ -15,6 +17,7 @@ type Pharmacist = {
   id: string;
   email: string;
   full_name: string;
+  is_active: boolean;
 };
 
 type State =
@@ -38,6 +41,9 @@ export default function StaffAccessPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [shareCode, setShareCode] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [rosterProblem, setRosterProblem] = useState<string | null>(null);
+  const [rosterNotice, setRosterNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -115,6 +121,57 @@ export default function StaffAccessPage() {
       setMessage("Code copied. Share it only with pharmacists you authorize.");
     } catch {
       setProblem("Could not copy the code. Select and copy it manually.");
+    }
+  }
+
+  async function setPharmacistActive(pharmacist: Pharmacist) {
+    const isActive = !pharmacist.is_active;
+    if (
+      !isActive &&
+      !window.confirm(
+        `Deactivate ${pharmacist.full_name || pharmacist.email}? They will lose access, but their sales history will be kept.`,
+      )
+    ) {
+      return;
+    }
+
+    setUpdatingId(pharmacist.id);
+    setRosterProblem(null);
+    setRosterNotice(null);
+    try {
+      const response = await authFetch(
+        `${API_URL}/staff/pharmacists/${pharmacist.id}/`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ is_active: isActive }),
+        },
+      );
+      if (!response.ok) throw new Error(await errorMessage(response));
+      const updated = (await response.json()) as Pharmacist;
+      setState((current) =>
+        current.status === "ready"
+          ? {
+              ...current,
+              pharmacists: current.pharmacists.map((member) =>
+                member.id === updated.id ? updated : member,
+              ),
+            }
+          : current,
+      );
+      setRosterNotice(
+        isActive
+          ? `${pharmacist.full_name || pharmacist.email} can access the workspace again.`
+          : `${pharmacist.full_name || pharmacist.email} has been deactivated. Sales history is preserved.`,
+      );
+    } catch (error) {
+      setRosterProblem(
+        error instanceof Error
+          ? error.message
+          : "Could not update pharmacist access.",
+      );
+    } finally {
+      setUpdatingId(null);
     }
   }
 
@@ -258,11 +315,22 @@ export default function StaffAccessPage() {
             </form>
 
             <p className="mt-4 text-xs leading-5 text-muted">
-              Use at least 12 characters. The code is stored as a secure hash,
-              so it cannot be recovered; set a new one if you forget it.
-              Anyone with the shared code can register until you replace it.
-              Replacing it does not deactivate existing pharmacists.
+              Share the registration code and sign-in page with the pharmacist
+              you want to add. They can choose “Register with a manager code”
+              to create their account. The code is stored as a secure hash and
+              cannot be viewed again after this page is refreshed.
             </p>
+            {state.configured && (
+              <Link
+                href="/login"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-[#f1b1d0] px-4 py-2.5 text-sm font-semibold text-[#c90062] transition hover:bg-[#fff1f7]"
+              >
+                Open staff sign-in
+                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            )}
           </section>
 
           <section className="rounded-2xl border border-rule bg-surface p-5 shadow-sm sm:p-6">
@@ -272,9 +340,9 @@ export default function StaffAccessPage() {
                   <Users className="h-5 w-5 text-[#d50068]" aria-hidden="true" />
                 </span>
                 <div>
-                  <h2 className="font-semibold">Authorized pharmacists</h2>
+                  <h2 className="font-semibold">Pharmacist roster</h2>
                   <p className="mt-1 text-sm text-muted">
-                    Accounts that have registered with your code.
+                    Active and deactivated pharmacist accounts.
                   </p>
                 </div>
               </div>
@@ -283,20 +351,76 @@ export default function StaffAccessPage() {
               </span>
             </div>
 
+            {rosterProblem && (
+              <p
+                role="alert"
+                className="mt-4 flex items-start gap-2 rounded-lg bg-red-bg px-3 py-2.5 text-sm text-red"
+              >
+                <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                {rosterProblem}
+              </p>
+            )}
+            {rosterNotice && (
+              <p
+                role="status"
+                className="mt-4 rounded-lg bg-ok-bg px-3 py-2.5 text-sm text-ok"
+              >
+                {rosterNotice}
+              </p>
+            )}
+
             {state.pharmacists.length === 0 ? (
               <p className="mt-6 rounded-lg border border-dashed border-rule p-5 text-sm text-muted">
-                No pharmacists have registered with the manager code yet.
+                No pharmacist accounts have registered yet. Create a
+                registration code and share it with the staff member you want
+                to add.
               </p>
             ) : (
               <ul className="mt-5 divide-y divide-rule">
                 {state.pharmacists.map((pharmacist) => (
-                  <li key={pharmacist.id} className="py-3 first:pt-0 last:pb-0">
-                    <p className="text-sm font-medium">
-                      {pharmacist.full_name || pharmacist.email}
-                    </p>
-                    <p className="mt-0.5 break-all text-xs text-muted">
-                      {pharmacist.email}
-                    </p>
+                  <li
+                    key={pharmacist.id}
+                    className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-pine">
+                        {pharmacist.full_name || pharmacist.email}
+                      </p>
+                      <p className="mt-0.5 break-all text-xs text-muted">
+                        {pharmacist.email}
+                      </p>
+                      <span
+                        className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                          pharmacist.is_active
+                            ? "bg-ok-bg text-ok"
+                            : "bg-paper text-muted"
+                        }`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            pharmacist.is_active ? "bg-ok" : "bg-slate-400"
+                          }`}
+                          aria-hidden="true"
+                        />
+                        {pharmacist.is_active ? "Active" : "Deactivated"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void setPharmacistActive(pharmacist)}
+                      disabled={updatingId !== null}
+                      className={`inline-flex shrink-0 items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                        pharmacist.is_active
+                          ? "border-red/30 text-red hover:bg-red-bg"
+                          : "border-[#f1b1d0] text-[#c90062] hover:bg-[#fff1f7]"
+                      }`}
+                    >
+                      {updatingId === pharmacist.id
+                        ? "Updating…"
+                        : pharmacist.is_active
+                          ? "Deactivate"
+                          : "Restore access"}
+                    </button>
                   </li>
                 ))}
               </ul>

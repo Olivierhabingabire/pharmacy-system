@@ -6,6 +6,7 @@ from .views import (
     MedicineDetail,
     MedicineList,
     Me,
+    PharmacistDetail,
     PharmacistList,
     RegisterPharmacist,
     RegistrationCode,
@@ -24,4 +25,5 @@ urlpatterns = [
     path("registration/register/", RegisterPharmacist.as_view()),
     path("registration/activate/", ActivatePharmacist.as_view()),
     path("staff/pharmacists/", PharmacistList.as_view()),
+    path("staff/pharmacists/<uuid:pk>/", PharmacistDetail.as_view()),
 ]

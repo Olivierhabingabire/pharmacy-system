@@ -11,6 +11,7 @@ export type AuthUser = {
   email: string;
   full_name: string;
   role: Role;
+  is_active: boolean;
 };
 
 export type AuthState =
@@ -19,6 +20,7 @@ export type AuthState =
   | { status: "error"; message: string }
   | { status: "signedIn"; user: AuthUser };
 
+type MeUser = Omit<AuthUser, "is_active"> & { is_active?: boolean };
 type Me = { userId: string; user?: AuthUser; error?: string };
 
 const AuthContext = createContext<{
@@ -72,7 +74,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         if (!response.ok) throw new Error(`status ${response.status}`);
-        setMe({ userId, user: (await response.json()) as AuthUser });
+        const user = (await response.json()) as MeUser;
+        setMe({
+          userId,
+          user: { ...user, is_active: user.is_active ?? true },
+        });
       })
       .catch((error: Error) => {
         if (error.name === "AbortError") return;

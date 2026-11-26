@@ -214,6 +214,95 @@ class PharmacyApiTests(APITestCase):
         self.assertEqual(roster.status_code, 200)
         self.assertEqual(roster.data[0]["email"], user.email)
         self.assertEqual(roster.data[0]["full_name"], "Aline Pharmacist")
+        self.assertTrue(roster.data[0]["is_active"])
+
+    def test_manager_can_deactivate_and_reactivate_pharmacist(self):
+        pharmacist_id = uuid.uuid4()
+        profile = Profile.objects.create(
+            id=pharmacist_id,
+            role="pharmacist",
+            email="staff@example.com",
+            full_name="Staff Member",
+        )
+        self.login("manager")
+
+        deactivated = self.client.patch(
+            f"/api/staff/pharmacists/{pharmacist_id}/",
+            {"is_active": False},
+            format="json",
+        )
+        self.assertEqual(deactivated.status_code, 200)
+        self.assertFalse(deactivated.data["is_active"])
+        profile.refresh_from_db()
+        self.assertFalse(profile.is_active)
+
+        roster = self.client.get("/api/staff/pharmacists/")
+        self.assertEqual(roster.status_code, 200)
+        self.assertEqual(len(roster.data), 1)
+        self.assertFalse(roster.data[0]["is_active"])
+
+        reactivated = self.client.patch(
+            f"/api/staff/pharmacists/{pharmacist_id}/",
+            {"is_active": True},
+            format="json",
+        )
+        self.assertEqual(reactivated.status_code, 200)
+        profile.refresh_from_db()
+        self.assertTrue(profile.is_active)
+
+    def test_pharmacist_cannot_manage_staff_access(self):
+        pharmacist_id = uuid.uuid4()
+        Profile.objects.create(
+            id=pharmacist_id,
+            role="pharmacist",
+            email="staff@example.com",
+        )
+        self.login("pharmacist")
+        response = self.client.patch(
+            f"/api/staff/pharmacists/{pharmacist_id}/",
+            {"is_active": False},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(self.client.get("/api/staff/pharmacists/").status_code, 403)
+
+    def test_inactive_staff_account_cannot_use_staff_endpoints(self):
+        user = SupabaseUser(
+            id=str(uuid.uuid4()),
+            email="inactive@example.com",
+            role=None,
+            is_active=False,
+        )
+        self.client.force_authenticate(user=user)
+
+        me = self.client.get("/api/me/")
+        self.assertEqual(me.status_code, 200)
+        self.assertFalse(me.data["is_active"])
+        sale = self.sell([{"medicine_id": self.good.id, "qty": 1}])
+        self.assertEqual(sale.status_code, 403)
+
+    def test_staff_access_rejects_invalid_status_and_non_pharmacist(self):
+        pharmacist_id = uuid.uuid4()
+        Profile.objects.create(
+            id=pharmacist_id,
+            role="pharmacist",
+            email="staff@example.com",
+        )
+        self.login("manager")
+
+        invalid = self.client.patch(
+            f"/api/staff/pharmacists/{pharmacist_id}/",
+            {"is_active": "false"},
+            format="json",
+        )
+        self.assertEqual(invalid.status_code, 400)
+
+        missing = self.client.patch(
+            f"/api/staff/pharmacists/{uuid.uuid4()}/",
+            {"is_active": False},
+            format="json",
+        )
+        self.assertEqual(missing.status_code, 404)
 
     def test_pharmacist_registration_requires_authentication_and_valid_code(self):
         anonymous = self.client.post(

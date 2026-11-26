@@ -5,7 +5,8 @@ create table profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   role text not null check (role in ('pharmacist', 'manager')),
   email text not null default '',
-  full_name text not null default ''
+  full_name text not null default '',
+  is_active boolean not null default true
 );
 
 create table registration_settings (

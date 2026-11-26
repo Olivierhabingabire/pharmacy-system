@@ -170,7 +170,11 @@ export default function LoginPage() {
   }
 
   const accountNeedsActivation =
-    state.status === "signedIn" && signedInRole === null;
+    state.status === "signedIn" &&
+    signedInRole === null &&
+    state.user.is_active;
+  const accountDeactivated =
+    state.status === "signedIn" && !state.user.is_active;
   const pendingEmail =
     state.status === "signedIn" ? state.user.email : "";
   const problem = error ?? (state.status === "error" ? state.message : null);
@@ -270,21 +274,33 @@ export default function LoginPage() {
             </p>
           </div>
           <h1 className="text-center text-2xl font-extrabold tracking-tight text-[#142039]">
-            {accountNeedsActivation
+            {accountDeactivated
+              ? "Staff access deactivated"
+              : accountNeedsActivation
               ? "Activate pharmacist access"
               : mode === "register"
                 ? "Register as a pharmacist"
                 : "Sign in"}
           </h1>
           <p className="mx-auto mt-2 max-w-sm text-center text-sm leading-6 text-slate-600">
-            {accountNeedsActivation
+            {accountDeactivated
+              ? "This account can no longer access the Pharmacy Desk workspace. Contact a manager if you think this is a mistake."
+              : accountNeedsActivation
               ? `Signed in as ${pendingEmail}. Enter the code your manager gave you to enable pharmacist access.`
               : mode === "register"
                 ? "Ask your manager for the shared registration code before creating your account."
                 : "Sign in to your Pharmacy Desk account."}
           </p>
 
-          {accountNeedsActivation ? (
+          {accountDeactivated ? (
+            <button
+              type="button"
+              onClick={() => void supabase.auth.signOut()}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-[#f1b1d0] px-4 py-3 text-sm font-semibold text-[#c90062] transition hover:bg-[#fff1f7]"
+            >
+              Sign out
+            </button>
+          ) : accountNeedsActivation ? (
             <form
               onSubmit={activateSignedInUser}
               className="mt-6 grid gap-4 text-[#17213a]"
@@ -456,7 +472,7 @@ export default function LoginPage() {
             </form>
           )}
 
-          {!accountNeedsActivation && (
+          {!accountNeedsActivation && !accountDeactivated && (
             <div className="mt-6 border-t border-rule pt-5 text-center">
               {mode === "signIn" ? (
                 <>

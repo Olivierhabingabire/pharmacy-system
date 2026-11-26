@@ -38,6 +38,7 @@ class Profile(models.Model):
     role = models.TextField()
     email = models.EmailField(default="", blank=True)
     full_name = models.TextField(default="", blank=True)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         managed = False

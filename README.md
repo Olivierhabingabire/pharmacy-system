@@ -82,9 +82,11 @@ Three rules explain the design:
 | Role | May do |
 |---|---|
 | pharmacist | Read medicines and complete sales |
-| manager | Everything a pharmacist can, plus create, edit and delete medicines and read the sales report |
+| manager | Everything a pharmacist can, plus create, edit and delete medicines, read the sales report, and manage pharmacist access |
 
-Managers set a shared pharmacist registration code in **Staff access**. A new pharmacist signs up with their name, email, password, and that code. The backend verifies the code before granting the pharmacist role; managers can see the authorized pharmacist roster in the same screen. The code is stored as a password hash and can be changed by a manager at any time. Changing it only affects future registrations.
+Managers set a shared pharmacist registration code in **Staff access**. A new pharmacist signs up with their name, email, password, and that code. The backend verifies the code before granting the pharmacist role. Managers can see the full roster and deactivate or restore a pharmacist's access from the same screen. Deactivation preserves the account and historical sales while preventing access to staff endpoints.
+
+The registration code is stored as a password hash and can be changed by a manager at any time. Changing it only affects future registrations. To update an existing database for pharmacist access management, run the current `database/registration.sql` in the Supabase SQL Editor; it adds the `is_active` profile column if needed.
 
 ## Run it locally
 
@@ -95,7 +97,7 @@ Python 3.12 or newer, Node.js 20.9 or newer, Git, and a free Supabase project.
 ### 1. Database
 
 1. In your Supabase project, find the **Project URL** and the **Publishable key** (Project Settings, API Keys), and the **Session pooler** connection details (the green **Connect** button).
-2. For a new database, open the **SQL Editor** and run `database/schema.sql`, then `database/seed.sql`. For an existing Pharmacy Desk database, run `database/registration.sql` once instead; do not rerun the schema or seed scripts.
+2. For a new database, open the **SQL Editor** and run `database/schema.sql`, then `database/seed.sql`. For an existing Pharmacy Desk database, run the current `database/registration.sql`; it is safe to run again and adds any missing registration and staff-access fields. Do not rerun the schema or seed scripts.
 3. Under **Authentication, Users**, create the first manager (tick **Auto Confirm User**). Copy their UID and insert their manager profile:
 
    ```sql

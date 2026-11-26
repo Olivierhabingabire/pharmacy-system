@@ -200,6 +200,24 @@ function Shell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (user && !user.is_active) {
+    return (
+      <Splash>
+        <h1 className="text-lg font-semibold">Staff access deactivated</h1>
+        <p className="mt-2 text-sm text-muted">
+          This account can no longer access the pharmacy workspace. Contact a
+          manager if you think this is a mistake.
+        </p>
+        <button
+          onClick={signOut}
+          className="mt-4 rounded-xl border border-rule bg-surface px-4 py-2.5 text-sm font-semibold text-pine transition hover:border-[#e90074]/40 hover:text-[#c90062]"
+        >
+          Sign out
+        </button>
+      </Splash>
+    );
+  }
+
   if (!user || user.role === null) {
     return (
       <Splash>

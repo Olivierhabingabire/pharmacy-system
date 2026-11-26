@@ -17,12 +17,13 @@ class SupabaseUser:
 
     is_authenticated = True
 
-    def __init__(self, id, email, role, full_name=""):
+    def __init__(self, id, email, role, full_name="", is_active=True):
         self.id = id
         self.pk = id
         self.email = email
         self.role = role  # "pharmacist", "manager", or None if no profile row
         self.full_name = full_name
+        self.is_active = is_active
 
 
 class SupabaseAuthentication(authentication.BaseAuthentication):
@@ -55,8 +56,9 @@ class SupabaseAuthentication(authentication.BaseAuthentication):
         user = SupabaseUser(
             id=user_id,
             email=claims.get("email", ""),
-            role=profile.role if profile else None,
+            role=profile.role if profile and profile.is_active else None,
             full_name=profile.full_name if profile else token_name,
+            is_active=profile.is_active if profile else True,
         )
         return (user, token)
 

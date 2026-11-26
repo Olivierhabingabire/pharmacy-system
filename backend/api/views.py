@@ -230,6 +230,7 @@ class Me(APIView):
                 "email": request.user.email,
                 "role": request.user.role,
                 "full_name": request.user.full_name,
+                "is_active": request.user.is_active,
             }
         )
 
@@ -427,7 +428,41 @@ class PharmacistList(APIView):
                     "id": str(profile.id),
                     "email": profile.email,
                     "full_name": profile.full_name,
+                    "is_active": profile.is_active,
                 }
                 for profile in pharmacists
             ]
+        )
+
+
+class PharmacistDetail(APIView):
+    permission_classes = [IsManager]
+
+    def patch(self, request, pk):
+        is_active = request.data.get("is_active")
+        if not isinstance(is_active, bool):
+            return Response(
+                {"detail": "is_active must be a boolean."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        profile = Profile.objects.filter(
+            id=pk,
+            role="pharmacist",
+        ).first()
+        if profile is None:
+            return Response(
+                {"detail": "Pharmacist not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        profile.is_active = is_active
+        profile.save(update_fields=["is_active"])
+        return Response(
+            {
+                "id": str(profile.id),
+                "email": profile.email,
+                "full_name": profile.full_name,
+                "is_active": profile.is_active,
+            }
         )
