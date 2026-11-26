@@ -1,24 +1,23 @@
 import { Mail, MapPin, Phone } from "lucide-react";
 
 const socialPlatforms = [
-  "WhatsApp",
-  "Instagram",
-  "YouTube",
-  "Facebook",
-  "X",
-  "LinkedIn",
+  { name: "WhatsApp", href: "https://wa.me/250790222835" },
+  { name: "Instagram", href: "https://www.instagram.com/" },
+  { name: "YouTube", href: "https://www.youtube.com/" },
+  { name: "Facebook", href: "https://www.facebook.com/" },
+  { name: "X", href: "https://x.com/" },
+  { name: "LinkedIn", href: "https://www.linkedin.com/" },
 ] as const;
 
 function SocialIcon({
   platform,
 }: {
-  platform: (typeof socialPlatforms)[number];
+  platform: (typeof socialPlatforms)[number]["name"];
 }) {
   return (
     <span
-      role="img"
-      aria-label={`${platform} icon`}
-      className="grid h-10 w-10 place-items-center rounded-xl border border-rule bg-white text-pine"
+      aria-hidden="true"
+      className="grid h-10 w-10 place-items-center rounded-xl border border-rule bg-white text-pine transition-colors group-hover:border-pine/30 group-hover:bg-paper"
     >
       {platform === "WhatsApp" && (
         <svg
@@ -78,8 +77,18 @@ export function SocialLinks() {
     <section aria-label="Social media">
       <h2 className="text-sm font-semibold text-pine">Follow us</h2>
       <div className="mt-4 flex flex-wrap gap-2">
-        {socialPlatforms.map((platform) => (
-          <SocialIcon key={platform} platform={platform} />
+        {socialPlatforms.map(({ name, href }) => (
+          <a
+            key={name}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open ${name}${name === "WhatsApp" ? " chat" : ""} in a new tab`}
+            title={name}
+            className="group inline-flex rounded-xl transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cross focus-visible:outline-offset-2"
+          >
+            <SocialIcon platform={name} />
+          </a>
         ))}
       </div>
     </section>
