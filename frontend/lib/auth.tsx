@@ -73,7 +73,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await supabase.auth.signOut();
           return;
         }
-        if (!response.ok) throw new Error(`status ${response.status}`);
+        if (!response.ok) {
+          setMe({
+            userId,
+            error: `The server returned HTTP ${response.status} while loading your account.`,
+          });
+          return;
+        }
         const user = (await response.json()) as MeUser;
         setMe({
           userId,
@@ -84,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error.name === "AbortError") return;
         setMe({
           userId,
-          error: "Signed in, but the server could not be reached. Is Django running on port 8000?",
+          error: `Could not connect to the API at ${API_URL}. Check the backend URL and confirm Django is running.`,
         });
       });
     return () => controller.abort();
